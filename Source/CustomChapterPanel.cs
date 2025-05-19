@@ -1,8 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 using Microsoft.Xna.Framework;
 using Monocle;
 using MonoMod.Cil;
@@ -11,15 +9,18 @@ using MonoMod.RuntimeDetour;
 namespace Celeste.Mod.ReallyBigHelper;
 
 public class CustomChapterPanel {
-    private static Dictionary<OuiChapterPanel, ChapterMetadata.Final> positions = new();
+    private static readonly Dictionary<OuiChapterPanel, ChapterMetadata.Final> positions = new();
 
     private static ILHook hookOrigUpdate;
+
+    private static readonly string reallyBigSectionName = Random.Shared.Next() + "ReallyBigSection_";
+
     public static void Load() {
         On.Celeste.OuiChapterPanel.SwapRoutine += swapMixin;
         On.Celeste.OuiChapterPanel.DrawCheckpoint += drawCheckpointMixin;
         On.Celeste.OuiChapterPanel.Start += startMixin;
         On.Celeste.OuiChapterPanel.Leave += leaveMixin;
-        
+
         hookOrigUpdate = new ILHook(typeof(OuiChapterPanel).GetMethod("orig_Update"), updateMixin);
     }
 
@@ -28,49 +29,10 @@ public class CustomChapterPanel {
         On.Celeste.OuiChapterPanel.DrawCheckpoint -= drawCheckpointMixin;
         On.Celeste.OuiChapterPanel.Start -= startMixin;
         On.Celeste.OuiChapterPanel.Leave -= leaveMixin;
-        
+
         hookOrigUpdate?.Dispose();
     }
 
-    //AAAAAAAAAAAAAAAAAAAA
-    private static HashSet<string> GetCheckpoints(SaveData save, AreaKey area) {
-        if (Celeste.PlayMode == Celeste.PlayModes.Event)
-            return new HashSet<string>();
-        AreaData areaData = AreaData.Areas[area.ID];
-        ModeProperties mode = areaData.Mode[(int) area.Mode];
-        if (save.DebugMode || save.CheatMode)
-        {
-            HashSet<string> checkpoints = new HashSet<string>();
-            if (mode.Checkpoints != null)
-            {
-                foreach (CheckpointData checkpoint in mode.Checkpoints)
-                    checkpoints.Add(string.Format("{0}|{1}",  (AreaData.Get(checkpoint.Area) ?? areaData).SID,  checkpoint.Level));
-            }
-            return checkpoints;
-        }
-        HashSet<string> checkpoints1 = save.Areas_Safe[area.ID].Modes[(int) area.Mode].Checkpoints;
-        if (mode == null)
-        {
-            checkpoints1.Clear();
-            return checkpoints1;
-        }
-        checkpoints1.RemoveWhere((Predicate<string>) (a => !( mode.Checkpoints).Any((Func<CheckpointData, bool>) (b => b.Level == a))));
-        AreaData[] subs = AreaData.Areas.Where((Func<AreaData, bool>) (other => other.Meta?.Parent == areaData.SID && other.HasMode(area.Mode))).ToArray();
-        return new HashSet<string>(checkpoints1.Select((Func<string, string>) (s =>
-        {
-            foreach (AreaData areaData1 in subs)
-            {
-                foreach (CheckpointData checkpoint in areaData1.Mode[(int) area.Mode].Checkpoints)
-                {
-                    if (checkpoint.Level == s)
-                        return string.Format("{0}|{1}", areaData1.SID,  s);
-                }
-            }
-            return s;
-        })));
-    }
-    
-    private static string reallyBigSectionName = Random.Shared.Next() + "ReallyBigSection_";
     private static IEnumerator swapMixin(On.Celeste.OuiChapterPanel.orig_SwapRoutine orig, OuiChapterPanel self) {
         if (!ReallyBigHelperModule.chapterData.ContainsKey(self.Area.SID) || !self.selectingMode) {
             yield return orig(self);
@@ -89,20 +51,26 @@ public class CustomChapterPanel {
 
             self.selectingMode = !self.selectingMode;
             if (!self.selectingMode) {
-                if (!positions.ContainsKey(self)) {
-                    positions[self] = ReallyBigHelperModule.chapterData[self.Area.SID];
-                }
+                if (!positions.ContainsKey(self)) positions[self] = ReallyBigHelperModule.chapterData[self.Area.SID];
                 self.checkpoints.Clear();
-                var checkpoints = GetCheckpoints(SaveData.Instance, self.Area);
+
+                var checkpointNames = new List<string>();
+                checkpointNames.Add(null);
+                foreach (var checkpoint in AreaData.Get(self.Area).Mode[(int)self.Area.Mode].Checkpoints)
+                    checkpointNames.Add(checkpoint.Level);
+
                 foreach (var section in positions[self].Chapters) {
+                    var checkpointLevelName = reallyBigSectionName + section.text;
+                    if (section.Chapters.Count == 0 &&
+                        section.id >= 0 && section.id < checkpointNames.Count)
+                        checkpointLevelName = checkpointNames[section.id];
                     self.checkpoints.Add(new CustomChapterOption {
                         Bg = section.tab,
                         Icon = section.icon,
                         BgColor = section.tabColor,
                         FgColor = section.iconColor,
-                        Label = AreaData.GetCheckpointName(self.Area, section.text), //??
                         CheckpointLevelName = section.Chapters.Count == 0
-                            ?  checkpoints.ElementAt(section.id)
+                            ? checkpointLevelName
                             : reallyBigSectionName + section.text,
                         CheckpointRotation = Calc.Random.Choose(-1, 1) * Calc.Random.Range(0.05f, 0.2f),
                         CheckpointOffset = new Vector2(Calc.Random.Range(-16, 16), Calc.Random.Range(-16, 16)),
@@ -113,25 +81,22 @@ public class CustomChapterPanel {
 
                 if (!self.RealStats.Modes[(int)self.Area.Mode].Completed && !SaveData.Instance.DebugMode &&
                     !SaveData.Instance.CheatMode) {
-                    self.option = self.checkpoints.Count - 1;//"last" checkpoint
+                    self.option = self.checkpoints.Count - 1; //"last" checkpoint
                     for (var index = 0; index < self.checkpoints.Count - 1; ++index)
                         self.options[index].CheckpointSlideOut = 1f;
                 } else {
                     self.option = 0;
-                    for(var i = 0; i<positions[self].Chapters.Count; i++)
+                    for (var i = 0; i < positions[self].Chapters.Count; i++)
                         if (positions[self].Chapters[i].selected)
                             self.option = i;
                 }
 
-                foreach (var group in positions[self].Chapters) {
-                    group.selected = false;
-                }
+                foreach (var group in positions[self].Chapters) group.selected = false;
 
                 for (var index = 0; index < self.options.Count; ++index)
                     self.options[index].SlideTowards(index, self.options.Count, true);
             }
 
-            Logger.Log("ReallyBigHelper", self.options.Count+" - "+positions[self].Chapters.Count);
             self.options[self.option].Pop = 1f;
             for (p = 0.0f; p < 1.0; p += Engine.DeltaTime * 4f) {
                 yield return null;
@@ -204,9 +169,10 @@ public class CustomChapterPanel {
         //   position3 += vector * this.getStrawberryWidth(44f, flagArray.Length, checkpointIndex);
         // }
     }
+
     private static void startMixin(On.Celeste.OuiChapterPanel.orig_Start orig, OuiChapterPanel self,
         string id) {
-        if (!id.StartsWith(reallyBigSectionName)) {
+        if (id == null || !id.StartsWith(reallyBigSectionName)) {
             orig(self, id);
             return;
         }
@@ -214,10 +180,10 @@ public class CustomChapterPanel {
         var next = positions[self].Chapters.Find(section =>
             reallyBigSectionName + section.text == id);
         if (next.Chapters.Count < 1) return;
-        
+
         positions[self] = next;
         positions[self].selected = true;
-        self.selectingMode = !self.selectingMode;//to couteract the swapping back
+        self.selectingMode = !self.selectingMode; //to couteract the swapping back
         self.Swap();
     }
 
@@ -239,7 +205,7 @@ public class CustomChapterPanel {
 
     private static void interceptBack(OuiChapterPanel self) {
         if (positions.ContainsKey(self) && positions[self].parent != null) {
-            self.selectingMode = !self.selectingMode;//to couteract the swapping back
+            self.selectingMode = !self.selectingMode; //to couteract the swapping back
             positions[self] = positions[self].parent;
         }
     }

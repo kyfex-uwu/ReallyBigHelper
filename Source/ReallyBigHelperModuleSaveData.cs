@@ -1,5 +1,3 @@
 namespace Celeste.Mod.ReallyBigHelper;
 
-public class ReallyBigHelperModuleSaveData : EverestModuleSaveData {
-
-}
+public class ReallyBigHelperModuleSaveData : EverestModuleSaveData { }

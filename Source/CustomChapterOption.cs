@@ -1,7 +1,4 @@
-using System;
-using System.Collections;
 using Microsoft.Xna.Framework;
-using Monocle;
 using MonoMod.Cil;
 
 namespace Celeste.Mod.ReallyBigHelper;
@@ -25,9 +22,9 @@ public class CustomChapterOption : OuiChapterPanel.Option {
         cursor.EmitLdarg0();
         cursor.EmitDelegate(getColor);
     }
+
     private static Color getColor(OuiChapterPanel.Option option) {
         if (option is CustomChapterOption customOption) return customOption.FgColor;
         return Color.White;
     }
-
 }

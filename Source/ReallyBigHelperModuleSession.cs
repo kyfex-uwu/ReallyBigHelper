@@ -1,5 +1,3 @@
 namespace Celeste.Mod.ReallyBigHelper;
 
-public class ReallyBigHelperModuleSession : EverestModuleSession {
-
-}
+public class ReallyBigHelperModuleSession : EverestModuleSession { }

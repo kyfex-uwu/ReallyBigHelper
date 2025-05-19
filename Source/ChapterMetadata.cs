@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using Microsoft.Xna.Framework;
 using Monocle;
@@ -8,19 +6,49 @@ using Monocle;
 namespace Celeste.Mod.ReallyBigHelper;
 
 public class ChapterMetadata {
+    private static readonly Dictionary<string, string> iconColors = new();
+    private static readonly Dictionary<string, string> tabColorsWithIcon = new();
 
-    private Color? _tabColor;
-    public string tabColor {
-        set => this._tabColor = Calc.HexToColor(value); 
-    }
-
-    private Color? _iconColor;
-    public string iconColor {
-        set => this._iconColor = Calc.HexToColor(value); 
-    }
+    private static readonly double lightenAmt = 0.4;
 
     private MTexture _icon;
+
+    private Color? _iconColor;
+
+    private MTexture _tab = GFX.Gui["areaselect/ReallyBigHelper/tabs/chevron"];
+
+    private Color? _tabColor;
+
+    public List<ChapterMetadata> Chapters = new();
+    private Final cleaned;
     private string iconName;
+    public int id = -1;
+    public string text;
+
+    static ChapterMetadata() {
+        iconColors["checkpoint"] = "172B48";
+        iconColors["startpoint"] = "432007";
+        iconColors["checkpoints"] = "311748";
+        iconColors["circle"] = "2A5312";
+        iconColors["heart"] = "8F226D";
+        iconColors["berry"] = "5C151A";
+
+        tabColorsWithIcon["checkpoint"] = "3C6180";
+        tabColorsWithIcon["startpoint"] = "EABE26";
+        tabColorsWithIcon["checkpoints"] = "6f3C80";
+        tabColorsWithIcon["circle"] = "72975C";
+        tabColorsWithIcon["heart"] = "E483B4";
+        tabColorsWithIcon["berry"] = "DA6178";
+    }
+
+    public string tabColor {
+        set => this._tabColor = Calc.HexToColor(value);
+    }
+
+    public string iconColor {
+        set => this._iconColor = Calc.HexToColor(value);
+    }
+
     public string icon {
         set {
             this._icon = GFX.Gui["areaselect/ReallyBigHelper/icons/" + value];
@@ -28,107 +56,34 @@ public class ChapterMetadata {
         }
     }
 
-    private MTexture _tab = GFX.Gui["areaselect/ReallyBigHelper/tabs/chevron"];
     public string tab {
-        set => this._tab = GFX.Gui["areaselect/ReallyBigHelper/tabs/"+value];
+        set => this._tab = GFX.Gui["areaselect/ReallyBigHelper/tabs/" + value];
     }
-    public int id = -1;
-    public string text;
 
-    public List<ChapterMetadata> Chapters = new();
-
+#if DEBUG
     public override string ToString() {
         return this.ToString(0);
     }
+
     public string ToString(int depth) {
-        string depthStr = new string(' ', depth * 2);
-        string chaptersStr = "";
-        foreach (var chapter in this.Chapters) {
-            chaptersStr += $"\n{chapter.ToString(depth + 1)}";
-        }
+        var depthStr = new string(' ', depth * 2);
+        var chaptersStr = "";
+        foreach (var chapter in this.Chapters) chaptersStr += $"\n{chapter.ToString(depth + 1)}";
 
         return
             $"{depthStr}---\n{depthStr}tabColor={this._tabColor.ToString()}\n{depthStr}iconColor={this._iconColor.ToString()
             }\n{depthStr}icon={this._icon.AtlasPath}\n{depthStr}tab={this._tab.AtlasPath}\n{depthStr}id=${this.id
             }\n{depthStr}text={this.text}\n{depthStr}Chapters:{chaptersStr}";
     }
-
-    private static Dictionary<string, string> iconColors = new();
-    private static Dictionary<string, string> tabColorsWithIcon = new();
-    static ChapterMetadata() {
-        iconColors["checkpoint"] =  "172B48";
-        iconColors["startpoint"] =  "432007";
-        iconColors["checkpoints"] = "311748";
-        iconColors["circle"] =      "2A5312";
-        iconColors["heart"] =       "8F226D";
-        iconColors["berry"] =       "5C151A";
-        
-        tabColorsWithIcon["checkpoint"] =  "3C6180";
-        tabColorsWithIcon["startpoint"] =  "EABE26";
-        tabColorsWithIcon["checkpoints"] = "6f3C80";
-        tabColorsWithIcon["circle"] =      "72975C";
-        tabColorsWithIcon["heart"] =       "E483B4";
-        tabColorsWithIcon["berry"] =       "DA6178";
-    }
-
-    public record Final {
-        public Color tabColor;
-
-        public Color iconColor;
-
-        public MTexture icon;
-
-        public MTexture tab;
-        public int id;
-        public string text;
-
-        public List<Final> Chapters = new();
-
-        public Final parent;
-        public bool selected = false;
-
-        public Final(Color tabColor, Color iconColor,
-            MTexture tab, MTexture icon,
-            int id, string text,
-            List<Final> chapters) {
-            this.tabColor = tabColor;
-            this.iconColor = iconColor;
-            this.tab = tab;
-            this.icon = icon;
-            this.id = id;
-            this.text = text;
-            this.Chapters = chapters;
-        }
-        
-#if DEBUG
-        public override string ToString() {
-            return this.ToString(0);
-        }
-        public string ToString(int depth) {
-            string depthStr = new string(' ', depth * 2);
-            string chaptersStr = "";
-            foreach (var chapter in this.Chapters) {
-                chaptersStr += $"\n{chapter.ToString(depth + 1)}";
-            }
-
-            return
-                $"{depthStr}---\n{depthStr}tabColor={this.tabColor.ToString()}\n{depthStr}iconColor={this.iconColor.ToString()
-                }\n{depthStr}icon={this.icon.AtlasPath}\n{depthStr}tab={this.tab.AtlasPath}\n{depthStr}id=${this.id
-                }\n{depthStr}text={this.text}\n{depthStr}Chapters:{chaptersStr}";
-        }
 #endif
-    }
-    
-    private static double lightenAmt = 0.4;
-    private Final cleaned;
+
     public Final Cleanup() {
         if (this._icon == null) {
             if (this.Chapters.Count == 0) {
-                if (this.id == 0) {
+                if (this.id == 0)
                     this.icon = "startpoint";
-                } else {
+                else
                     this.icon = "checkpoint";
-                }
             } else {
                 this.icon = "checkpoints";
             }
@@ -144,31 +99,77 @@ public class ChapterMetadata {
                     this.tabColor = tabColorsWithIcon["checkpoint"];
                 }
             } else {
-                this._tabColor = new(
-                    (int) (255-(255-this._iconColor.Value.R)*lightenAmt),
-                    (int) (255-(255-this._iconColor.Value.G)*lightenAmt),
-                    (int) (255-(255-this._iconColor.Value.B)*lightenAmt),
+                this._tabColor = new Color(
+                    (int)(255 - (255 - this._iconColor.Value.R) * lightenAmt),
+                    (int)(255 - (255 - this._iconColor.Value.G) * lightenAmt),
+                    (int)(255 - (255 - this._iconColor.Value.B) * lightenAmt),
                     this._iconColor.Value.A);
             }
-        }else if (!this._iconColor.HasValue) {
-            this._iconColor = new(
-                (int) (255-(255-this._tabColor.Value.R)/lightenAmt),
-                (int) (255-(255-this._tabColor.Value.G)/lightenAmt),
-                (int) (255-(255-this._tabColor.Value.B)/lightenAmt),
+        } else if (!this._iconColor.HasValue) {
+            this._iconColor = new Color(
+                (int)(255 - (255 - this._tabColor.Value.R) / lightenAmt),
+                (int)(255 - (255 - this._tabColor.Value.G) / lightenAmt),
+                (int)(255 - (255 - this._tabColor.Value.B) / lightenAmt),
                 this._tabColor.Value.A);
         }
 
         foreach (var chapter in this.Chapters) chapter.Cleanup();
-        this.cleaned=new(this._tabColor.Value, this._iconColor.Value,
+        this.cleaned = new Final(this._tabColor.Value, this._iconColor.Value,
             this._tab, this._icon,
-            this.id, this.text, 
+            this.id, this.text,
             new List<Final>(this.Chapters.Select(metadata => metadata.cleaned)));
         foreach (var chapter in this.Chapters) chapter.GiveParent(this.cleaned);
-        
+
         return this.cleaned;
     }
 
     private void GiveParent(Final parent) {
         this.cleaned.parent = parent;
+    }
+
+    public record Final {
+        public List<Final> Chapters = new();
+
+        public MTexture icon;
+
+        public Color iconColor;
+        public int id;
+
+        public Final parent;
+        public bool selected = false;
+
+        public MTexture tab;
+        public Color tabColor;
+        public string text;
+
+        public Final(Color tabColor, Color iconColor,
+            MTexture tab, MTexture icon,
+            int id, string text,
+            List<Final> chapters) {
+            this.tabColor = tabColor;
+            this.iconColor = iconColor;
+            this.tab = tab;
+            this.icon = icon;
+            this.id = id;
+            this.text = text;
+            this.Chapters = chapters;
+        }
+
+#if DEBUG
+        public override string ToString() {
+            return this.ToString(0);
+        }
+
+        public string ToString(int depth) {
+            var depthStr = new string(' ', depth * 2);
+            var chaptersStr = "";
+            foreach (var chapter in this.Chapters) chaptersStr += $"\n{chapter.ToString(depth + 1)}";
+
+            return
+                $"{depthStr}---\n{depthStr}tabColor={this.tabColor.ToString()}\n{depthStr}iconColor={this.iconColor.ToString()
+                }\n{depthStr}icon={this.icon.AtlasPath}\n{depthStr}tab={this.tab.AtlasPath}\n{depthStr}id=${this.id
+                }\n{depthStr}text={this.text}\n{depthStr}Chapters:{chaptersStr}";
+        }
+#endif
     }
 }
