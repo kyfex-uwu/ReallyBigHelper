@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Xna.Framework;
@@ -150,9 +151,29 @@ public class ChapterMetadata {
             this.iconColor = iconColor;
             this.tab = tab;
             this.icon = icon;
-            this.id = id;
+            this.id = Math.Max(id,-1);
             this.text = text;
             this.Chapters = chapters;
+        }
+
+        public OuiChapterPanel.Option option;
+        public OuiChapterPanel.Option getOption(OuiChapterPanel holder, string textLabel, string roomName) {
+            this.option = new CustomChapterOption {
+                Bg = this.tab,
+                Icon = this.icon,
+                BgColor = this.tabColor,
+                FgColor = this.iconColor,
+                chapterIndex = this.id,
+                CheckpointLevelName = this.Chapters.Count == 0
+                    ? roomName
+                    : CustomChapterPanel.reallyBigSectionName,
+                Label = Dialog.Clean($"ReallyBigHelper_{holder.Area.SID}_{textLabel}"),
+                CheckpointRotation = Calc.Random.Choose(-1, 1) * Calc.Random.Range(0.05f, 0.2f),
+                CheckpointOffset = new Vector2(Calc.Random.Range(-16, 16), Calc.Random.Range(-16, 16)),
+                Large = false,
+                Siblings = CustomChapterPanel.positions[holder].Chapters.Count
+            };
+            return this.option;
         }
 
 #if DEBUG
