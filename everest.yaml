@@ -1,6 +1,6 @@
 - DLL: bin/ReallyBigHelper.dll
   Name: ReallyBigHelper
-  Version: 0.1.0
+  Version: 0.2.0
   Dependencies:
     - Name: Everest
     - Name: EverestCore

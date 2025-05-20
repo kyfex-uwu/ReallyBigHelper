@@ -167,7 +167,7 @@ public class ChapterMetadata {
                 CheckpointLevelName = this.Chapters.Count == 0
                     ? roomName
                     : CustomChapterPanel.reallyBigSectionName,
-                Label = Dialog.Clean($"ReallyBigHelper_{holder.Area.SID}_{textLabel}"),
+                Label = Dialog.Clean($"ReallyBigHelper_{holder.Area.SID}_{textLabel ?? AreaData.GetStartName(holder.Area)}"),
                 CheckpointRotation = Calc.Random.Choose(-1, 1) * Calc.Random.Range(0.05f, 0.2f),
                 CheckpointOffset = new Vector2(Calc.Random.Range(-16, 16), Calc.Random.Range(-16, 16)),
                 Large = false,

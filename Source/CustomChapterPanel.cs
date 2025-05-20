@@ -66,7 +66,7 @@ public class CustomChapterPanel {
                 self.checkpoints.Clear();
 
                 var checkpointNames = new List<string>();
-                checkpointNames.Add(AreaData.GetStartName(self.Area));
+                checkpointNames.Add(null);
                 foreach (var checkpoint in AreaData.Get(self.Area).Mode[(int)self.Area.Mode].Checkpoints)
                     checkpointNames.Add(checkpoint.Level);
 
