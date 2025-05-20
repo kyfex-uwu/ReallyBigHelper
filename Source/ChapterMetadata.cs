@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Celeste.Mod.Meta;
 using Microsoft.Xna.Framework;
 using Monocle;
 
@@ -25,6 +26,7 @@ public class ChapterMetadata {
     private string iconName;
     public int id = -1;
     public string text;
+    public MapMetaMountain Mountain;
 
     static ChapterMetadata() {
         iconColors["checkpoint"] = "172B48";
@@ -118,7 +120,8 @@ public class ChapterMetadata {
         this.cleaned = new Final(this._tabColor.Value, this._iconColor.Value,
             this._tab, this._icon,
             this.id, this.text,
-            new List<Final>(this.Chapters.Select(metadata => metadata.cleaned)));
+            new List<Final>(this.Chapters.Select(metadata => metadata.cleaned)),
+            this.Mountain);
         foreach (var chapter in this.Chapters) chapter.GiveParent(this.cleaned);
 
         return this.cleaned;
@@ -143,10 +146,21 @@ public class ChapterMetadata {
         public Color tabColor;
         public string text;
 
+        public MapMetaMountain Mountain;
+
+        public MapMetaMountain GetMountain() {
+            if (this.Mountain == null) {
+                if (this.parent == null) return null;
+                return this.parent.GetMountain();
+            }
+
+            return this.Mountain;
+        }
+
         public Final(Color tabColor, Color iconColor,
             MTexture tab, MTexture icon,
             int id, string text,
-            List<Final> chapters) {
+            List<Final> chapters, MapMetaMountain mountain) {
             this.tabColor = tabColor;
             this.iconColor = iconColor;
             this.tab = tab;
@@ -154,6 +168,7 @@ public class ChapterMetadata {
             this.id = Math.Max(id,-1);
             this.text = text;
             this.Chapters = chapters;
+            this.Mountain = mountain;
         }
 
         public OuiChapterPanel.Option option;

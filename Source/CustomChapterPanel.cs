@@ -25,6 +25,7 @@ public class CustomChapterPanel {
         On.Celeste.OuiChapterPanel.Start += startMixin;
         On.Celeste.OuiChapterPanel.Leave += leaveMixin;
         IL.Celeste.OuiChapterPanel.Render += renderMixin;
+        //IL.Celeste.Overworld.Update += mountainUpdateMixin;
 
         hookOrigUpdate = new ILHook(typeof(OuiChapterPanel).GetMethod("orig_Update", BindingFlags.Public|BindingFlags.Instance), 
             updateMixin);
@@ -37,6 +38,7 @@ public class CustomChapterPanel {
         On.Celeste.OuiChapterPanel.Start -= startMixin;
         On.Celeste.OuiChapterPanel.Leave -= leaveMixin;
         IL.Celeste.OuiChapterPanel.Render -= renderMixin;
+        //IL.Celeste.Overworld.Update -= mountainUpdateMixin;
 
         hookOrigUpdate?.Dispose();
     }
@@ -151,6 +153,11 @@ public class CustomChapterPanel {
     private static void updateMixin(ILContext ctx) {
         var cursor = new ILCursor(ctx);
 
+        cursor.GotoNext(MoveType.Before, instr =>
+            instr.MatchCall<Entity>("Update"));
+        cursor.EmitLdarg0();
+        cursor.EmitDelegate(updateMountain);
+
         cursor.GotoNext(MoveType.After, instr =>
             instr.MatchLdstr("event:/ui/world_map/chapter/checkpoint_back"));
         cursor.GotoNext(MoveType.Before, instr =>
@@ -162,6 +169,17 @@ public class CustomChapterPanel {
         if (positions.ContainsKey(self) && positions[self].parent != null) {
             storedFakeSwap.Add(self);//to couteract the swapping back
             positions[self] = positions[self].parent;
+        }
+    }
+    private static void updateMountain(OuiChapterPanel self) {
+        if (positions.TryGetValue(self, out var position)) {
+            if (self.option >= 0 && self.option < position.Chapters.Count) {
+                var mountainPos = position.Chapters[self.option].GetMountain();
+                if (mountainPos != null) {
+                    self.Overworld.Mountain.EaseCamera(self.Area.ID,
+                        mountainPos.Select.Convert(), null, true);
+                }
+            }
         }
     }
 
@@ -199,4 +217,24 @@ public class CustomChapterPanel {
 
         return false;
     }
+
+    /*
+    private static void mountainUpdateMixin(ILContext ctx) {
+        var cursor = new ILCursor(ctx);
+
+        cursor.GotoNext(MoveType.After, 
+            instr => instr.MatchCallvirt<MapMeta>("get_Mountain"));
+        cursor.EmitLdarg0();
+        cursor.EmitDelegate(customMountain);
+    }
+
+    private static MapMetaMountain customMountain(MapMetaMountain mountain, Overworld self) {
+        var panel = self.UIs.Find(oui => (oui is OuiChapterPanel ouiPanel) && positions.ContainsKey(ouiPanel))
+            as OuiChapterPanel;
+        if (panel != null) {
+            return positions[panel].Mountain;
+        }
+        return mountain;
+    }
+    */
 }
