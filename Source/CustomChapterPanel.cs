@@ -14,8 +14,6 @@ public class CustomChapterPanel {
     public static readonly HashSet<OuiChapterPanel> storedFakeSwap = new();
 
     private static ILHook hookOrigUpdate;
-    // private static MethodInfo origDrawCheckpoint = typeof(OuiChapterPanel).GetMethod("orig_DrawCheckpoint",
-    //     BindingFlags.NonPublic|BindingFlags.Instance);
     
     public static readonly string reallyBigSectionName = Random.Shared.Next() + "ReallyBigSection_";
 
@@ -25,11 +23,9 @@ public class CustomChapterPanel {
         On.Celeste.OuiChapterPanel.Start += startMixin;
         On.Celeste.OuiChapterPanel.Leave += leaveMixin;
         IL.Celeste.OuiChapterPanel.Render += renderMixin;
-        //IL.Celeste.MountainRenderer.Update += mountainUpdateMixin;
 
         hookOrigUpdate = new ILHook(typeof(OuiChapterPanel).GetMethod("orig_Update", BindingFlags.Public|BindingFlags.Instance), 
             updateMixin);
-        //Delegate.CreateDelegate(typeof(Func<List<OuiChapterPanel.Option>>), origGetOptions) as Func<List<OuiChapterPanel.Option>>;
     }
 
     public static void Unload() {
@@ -38,11 +34,16 @@ public class CustomChapterPanel {
         On.Celeste.OuiChapterPanel.Start -= startMixin;
         On.Celeste.OuiChapterPanel.Leave -= leaveMixin;
         IL.Celeste.OuiChapterPanel.Render -= renderMixin;
-        //IL.Celeste.MountainRenderer.Update -= mountainUpdateMixin;
 
         hookOrigUpdate?.Dispose();
     }
 
+    private static bool canShow(AreaKey area, List<string> names, int index) {
+        if (index == 0) return true;
+        if (index < 0 || index >= names.Count) return false;
+        return SaveData.Instance.Areas_Safe[area.ID]
+            .Modes[(int)area.Mode].Checkpoints.Contains(names[index]);
+    }
     //this could be done with il hooks. but why
     private static IEnumerator swapMixin(On.Celeste.OuiChapterPanel.orig_SwapRoutine orig, OuiChapterPanel self) {
         if (!ReallyBigHelperModule.chapterData.ContainsKey(self.Area.SID)) {
@@ -66,13 +67,33 @@ public class CustomChapterPanel {
             if (!self.selectingMode) {
                 if (!positions.ContainsKey(self)) positions[self] = ReallyBigHelperModule.chapterData[self.Area.SID];
                 self.checkpoints.Clear();
+                
+                foreach (var group in positions[self].Chapters) group.selected = false;
 
                 var checkpointNames = new List<string>();
                 checkpointNames.Add(null);
                 foreach (var checkpoint in AreaData.Get(self.Area).Mode[(int)self.Area.Mode].Checkpoints)
                     checkpointNames.Add(checkpoint.Level);
-
+                
                 foreach (var section in positions[self].Chapters) {
+                    if (!SaveData.Instance.DebugMode && !SaveData.Instance.CheatMode) {
+                        if (section.Chapters.Count > 0) {
+                            var valid = false;
+                            foreach (var id in section.childIds()) {
+                                if (canShow(self.Area, checkpointNames, id)) {
+                                    valid = true;
+                                    break;
+                                }
+                            }
+
+                            if (!valid) {
+                                continue;
+                            }
+                        }else if (!canShow(self.Area, checkpointNames, section.id)) {
+                            continue;
+                        }
+                    }
+
                     var textLabel = section.text;
                     if (section.Chapters.Count == 0 &&
                         section.id >= 0 && section.id < checkpointNames.Count) {
@@ -96,8 +117,6 @@ public class CustomChapterPanel {
                             self.option = i;
                 }
 
-                foreach (var group in positions[self].Chapters) group.selected = false;
-
                 for (var index = 0; index < self.options.Count; ++index)
                     self.options[index].SlideTowards(index, self.options.Count, true);
             }
@@ -117,16 +136,15 @@ public class CustomChapterPanel {
     }
 
     private static void drawCheckpointMixin(On.Celeste.OuiChapterPanel.orig_DrawCheckpoint orig, OuiChapterPanel self,
-        Vector2 center, object _option, int checkpointIndex) {
-        var option = _option as OuiChapterPanel.Option;
-        if (!(option is CustomChapterOption customOption)) {
-            orig(self, center, option, checkpointIndex);
-            return;
+        Vector2 center, object option, int checkpointIndex) {
+        if (option is CustomChapterOption customOption) {
+            if (customOption.chapterIndex >= 0 && customOption.chapterIndex < customOption.Siblings) {
+                //origDrawCheckpoint.Invoke(self, new object[] { center, option, 0 });//customOption.chapterIndex
+                return;
+            }
         }
 
-        if (customOption.chapterIndex >= 0 && customOption.chapterIndex < customOption.Siblings) {
-            //origDrawCheckpoint.Invoke(self, new object[] { center, option, 0 });//customOption.chapterIndex
-        }
+        orig(self, center, option, checkpointIndex);
     }
 
     private static void startMixin(On.Celeste.OuiChapterPanel.orig_Start orig, OuiChapterPanel self,
@@ -136,7 +154,7 @@ public class CustomChapterPanel {
             return;
         }
 
-        var next = positions[self].Chapters[self.option];
+        var next = (self.options[self.option] as CustomChapterOption).position;
         if (next.Chapters.Count < 1) return;
 
         positions[self] = next;
@@ -173,12 +191,13 @@ public class CustomChapterPanel {
     }
     private static void updateMountain(OuiChapterPanel self) {
         if (positions.TryGetValue(self, out var position)) {
-            var index = positions[self].Chapters.FindIndex(child => child.selected);
-            if (index == -1) {
-                index = self.option;
-                if (storedFakeSwap.Contains(self)) index = 0;//????
+            var selected = position.Chapters.Find(child => child.selected)?.option;
+            if (selected == null) {
+                if (storedFakeSwap.Contains(self)) return;
+                selected = self.options[self.option];
             }
-            var mountainData = position.Chapters[index].GetMountain();
+            
+            var mountainData = (selected as CustomChapterOption)?.position?.GetMountain();
             if (mountainData != null) {
                 self.Overworld.Mountain.EaseCamera(self.Area.ID,
                     self.EnteringChapter ? mountainData.Zoom.Convert() : mountainData.Select.Convert(),
@@ -205,7 +224,7 @@ public class CustomChapterPanel {
         if (positions.TryGetValue(self, out var position) && 
             self.option < position.Chapters.Count &&
             self.option >=0 &&
-            position.Chapters[self.option].id == -1) {// !storedFakeSwap.Contains(self) && 
+            (self.options[self.option] as CustomChapterOption).position.id == -1) {// !storedFakeSwap.Contains(self) && 
             self.strawberries.Position = self.contentOffset + new Vector2(0.0f, 170f) + self.strawberriesOffset;
             self.deaths.Position = self.contentOffset + new Vector2(0.0f, 170f) + self.deathsOffset;
             self.heart.Position = self.contentOffset + new Vector2(0.0f, 170f) + self.heartOffset;
@@ -216,7 +235,7 @@ public class CustomChapterPanel {
         if (parent != null) {
             Vector2 center = self.Position + new Vector2(self.contentOffset.X, 340f);
             for (int index = parent.Chapters.Count - 1; index >= 0; --index) {
-                self.DrawCheckpoint(center, parent.Chapters[index].option, index);
+                //self.DrawCheckpoint(center, parent.Chapters[index].option, index);
             }
         }
 

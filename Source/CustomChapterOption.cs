@@ -6,6 +6,7 @@ namespace Celeste.Mod.ReallyBigHelper;
 public class CustomChapterOption : OuiChapterPanel.Option {
     public Color FgColor;
     public int chapterIndex;
+    public ChapterMetadata.Final position;
 
     public static void Load() {
         IL.Celeste.OuiChapterPanel.Option.Render += iconColorMixin;

@@ -186,9 +186,24 @@ public class ChapterMetadata {
                 CheckpointRotation = Calc.Random.Choose(-1, 1) * Calc.Random.Range(0.05f, 0.2f),
                 CheckpointOffset = new Vector2(Calc.Random.Range(-16, 16), Calc.Random.Range(-16, 16)),
                 Large = false,
-                Siblings = CustomChapterPanel.positions[holder].Chapters.Count
+                Siblings = CustomChapterPanel.positions[holder].Chapters.Count,
+                
+                position = this
             };
             return this.option;
+        }
+
+        public List<int> childIds() {
+            if (this.id >= 0) {
+                return new List<int>{this.id};
+            }
+
+            var toReturn = new List<int>();
+            foreach (var child in this.Chapters) {
+                toReturn.AddRange(child.childIds());
+            }
+
+            return toReturn;
         }
 
 #if DEBUG
