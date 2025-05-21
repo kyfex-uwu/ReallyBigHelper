@@ -5,3 +5,5 @@
     - Name: Everest
     - Name: EverestCore
       Version: 1.5421.0
+  OptionalDependencies:
+    - Name: CollabUtils2 

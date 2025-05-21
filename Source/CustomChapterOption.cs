@@ -17,15 +17,14 @@ public class CustomChapterOption : OuiChapterPanel.Option {
 
     private static void iconColorMixin(ILContext ctx) {
         var cursor = new ILCursor(ctx);
-        cursor.GotoNext(MoveType.Before, instr =>
+        cursor.GotoNext(MoveType.After, instr =>
             instr.MatchCall<Color>("get_White"));
-        cursor.Remove(); //nyehehehe
         cursor.EmitLdarg0();
         cursor.EmitDelegate(getColor);
     }
 
-    private static Color getColor(OuiChapterPanel.Option option) {
+    private static Color getColor(Color white, OuiChapterPanel.Option option) {
         if (option is CustomChapterOption customOption) return customOption.FgColor;
-        return Color.White;
+        return white;
     }
 }

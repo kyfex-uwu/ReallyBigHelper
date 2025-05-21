@@ -33,6 +33,8 @@ public class ReallyBigHelperModule : EverestModule {
         CustomChapterPanel.Load();
 
         On.Celeste.AreaData.Load += AreaDataOnLoad;
+        
+        if(hasCollabUtils2) CollabUtilsCompat.Load();
     }
 
     public override void Unload() {
@@ -40,6 +42,8 @@ public class ReallyBigHelperModule : EverestModule {
         CustomChapterPanel.Unload();
 
         On.Celeste.AreaData.Load -= AreaDataOnLoad;
+        
+        if(hasCollabUtils2) CollabUtilsCompat.Unload();
     }
 
     private static void AreaDataOnLoad(On.Celeste.AreaData.orig_Load orig) {
@@ -54,4 +58,9 @@ public class ReallyBigHelperModule : EverestModule {
             }
         }
     }
+    
+    //--
+    
+    private static EverestModuleMetadata collabUtils2Dependency = new EverestModuleMetadata { Name = "CollabUtils2" };
+    public static readonly bool hasCollabUtils2 = Everest.Loader.DependencyLoaded(collabUtils2Dependency);
 }

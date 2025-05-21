@@ -28,6 +28,15 @@
         <Reference Include="$(CelestePrefix)\FNA.dll" Private="false" />
     </ItemGroup>
 
+    <ItemGroup>
+        <PackageReference Include="CelesteMod.Publicizer" Version="*" CelesteAssembly="$(CelestePrefix)\Celeste.dll" />
+        <Reference Include="$(CelestePrefix)\MMHOOK_Celeste.dll" Private="false" />
+        <Reference Include="$(CelestePrefix)\FNA.dll" Private="false" />
+        <Reference Include="CelesteNet.Client">
+            <HintPath>..\deps\CollabUtils2.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+
     <Target Name="CopyFiles" AfterTargets="Build" Inputs="$(OutputPath)\$(AssemblyName).dll;$(OutputPath)\$(AssemblyName).pdb" Outputs="..\bin\$(AssemblyName).dll;..\bin\$(AssemblyName).pdb">
         <Copy SourceFiles="$(OutputPath)\$(AssemblyName).dll" DestinationFolder="..\bin" />
         <Copy SourceFiles="$(OutputPath)\$(AssemblyName).pdb" DestinationFolder="..\bin" />
