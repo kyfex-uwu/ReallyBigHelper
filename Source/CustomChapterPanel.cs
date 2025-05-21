@@ -25,7 +25,7 @@ public class CustomChapterPanel {
         On.Celeste.OuiChapterPanel.Start += startMixin;
         On.Celeste.OuiChapterPanel.Leave += leaveMixin;
         IL.Celeste.OuiChapterPanel.Render += renderMixin;
-        //IL.Celeste.Overworld.Update += mountainUpdateMixin;
+        //IL.Celeste.MountainRenderer.Update += mountainUpdateMixin;
 
         hookOrigUpdate = new ILHook(typeof(OuiChapterPanel).GetMethod("orig_Update", BindingFlags.Public|BindingFlags.Instance), 
             updateMixin);
@@ -38,7 +38,7 @@ public class CustomChapterPanel {
         On.Celeste.OuiChapterPanel.Start -= startMixin;
         On.Celeste.OuiChapterPanel.Leave -= leaveMixin;
         IL.Celeste.OuiChapterPanel.Render -= renderMixin;
-        //IL.Celeste.Overworld.Update -= mountainUpdateMixin;
+        //IL.Celeste.MountainRenderer.Update -= mountainUpdateMixin;
 
         hookOrigUpdate?.Dispose();
     }
@@ -86,7 +86,7 @@ public class CustomChapterPanel {
 
                 if (!self.RealStats.Modes[(int)self.Area.Mode].Completed && !SaveData.Instance.DebugMode &&
                     !SaveData.Instance.CheatMode) {
-                    self.option = self.checkpoints.Count - 1; //"last" checkpoint
+                    self.option = self.checkpoints.Count - 1; //"last" checkpoint (might need to edit)
                     for (var index = 0; index < self.checkpoints.Count - 1; ++index)
                         self.options[index].CheckpointSlideOut = 1f;
                 } else {
@@ -173,12 +173,17 @@ public class CustomChapterPanel {
     }
     private static void updateMountain(OuiChapterPanel self) {
         if (positions.TryGetValue(self, out var position)) {
-            if (self.option >= 0 && self.option < position.Chapters.Count) {
-                var mountainPos = position.Chapters[self.option].GetMountain();
-                if (mountainPos != null) {
-                    self.Overworld.Mountain.EaseCamera(self.Area.ID,
-                        mountainPos.Select.Convert(), null, true);
-                }
+            var index = positions[self].Chapters.FindIndex(child => child.selected);
+            if (index == -1) {
+                index = self.option;
+                if (storedFakeSwap.Contains(self)) index = 0;//????
+            }
+            var mountainData = position.Chapters[index].GetMountain();
+            if (mountainData != null) {
+                self.Overworld.Mountain.EaseCamera(self.Area.ID,
+                    self.EnteringChapter ? mountainData.Zoom.Convert() : mountainData.Select.Convert(),
+                    null, true);
+                self.Overworld.Mountain.EaseState(mountainData.State);
             }
         }
     }
@@ -217,24 +222,24 @@ public class CustomChapterPanel {
 
         return false;
     }
-
+    
     /*
     private static void mountainUpdateMixin(ILContext ctx) {
         var cursor = new ILCursor(ctx);
 
         cursor.GotoNext(MoveType.After, 
-            instr => instr.MatchCallvirt<MapMeta>("get_Mountain"));
+            instr => instr.MatchCallvirt<MapMetaMountain>("get_ShowCore"));
         cursor.EmitLdarg0();
         cursor.EmitDelegate(customMountain);
     }
 
-    private static MapMetaMountain customMountain(MapMetaMountain mountain, Overworld self) {
+    private static bool customMountain(bool val, Overworld self) {
         var panel = self.UIs.Find(oui => (oui is OuiChapterPanel ouiPanel) && positions.ContainsKey(ouiPanel))
             as OuiChapterPanel;
         if (panel != null) {
-            return positions[panel].Mountain;
+            return positions[panel].Mountain.ShowCore;
         }
-        return mountain;
+        return val;
     }
     */
 }
