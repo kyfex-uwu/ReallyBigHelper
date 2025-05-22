@@ -1,7 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
+using Celeste.Mod.Meta;
 using Microsoft.Xna.Framework;
 using Monocle;
 using MonoMod.Cil;
@@ -12,6 +14,7 @@ namespace Celeste.Mod.ReallyBigHelper;
 public class CustomChapterPanel {
     public static readonly Dictionary<OuiChapterPanel, ChapterMetadata.Final> positions = new();
     public static readonly HashSet<OuiChapterPanel> storedFakeSwap = new();
+    private static MapMetaMountain globalCurrentMountain__gross;
 
     private static ILHook hookOrigUpdate;
     
@@ -23,6 +26,7 @@ public class CustomChapterPanel {
         On.Celeste.OuiChapterPanel.Start += startMixin;
         On.Celeste.OuiChapterPanel.Leave += leaveMixin;
         IL.Celeste.OuiChapterPanel.Render += renderMixin;
+        IL.Celeste.MountainModel.BeforeRender += changeMountainMixin;
 
         hookOrigUpdate = new ILHook(typeof(OuiChapterPanel).GetMethod("orig_Update", BindingFlags.Public|BindingFlags.Instance), 
             updateMixin);
@@ -34,6 +38,7 @@ public class CustomChapterPanel {
         On.Celeste.OuiChapterPanel.Start -= startMixin;
         On.Celeste.OuiChapterPanel.Leave -= leaveMixin;
         IL.Celeste.OuiChapterPanel.Render -= renderMixin;
+        IL.Celeste.MountainModel.BeforeRender -= changeMountainMixin;
 
         hookOrigUpdate?.Dispose();
     }
@@ -51,6 +56,8 @@ public class CustomChapterPanel {
         } else {
             var fromHeight = self.height;
             var toHeight = (self.selectingMode ^ storedFakeSwap.Contains(self)) ? 730 : self.GetModeHeight();
+            //todo
+            
             self.resizing = true;
             self.PlayExpandSfx(fromHeight, toHeight);
             var offset = 800f;
@@ -198,12 +205,50 @@ public class CustomChapterPanel {
             }
             
             var mountainData = (selected as CustomChapterOption)?.position?.GetMountain();
+            globalCurrentMountain__gross = mountainData;
             if (mountainData != null) {
                 self.Overworld.Mountain.EaseCamera(self.Area.ID,
                     self.EnteringChapter ? mountainData.Zoom.Convert() : mountainData.Select.Convert(),
                     null, true);
-                self.Overworld.Mountain.EaseState(mountainData.State);
+                self.Overworld.Mountain.Model.EaseState(mountainData.State);
+                
+                self.Overworld.Maddy.Hide();
+                //todo
+                self.Overworld.Maddy.Position = new Vector3(
+                    mountainData.Cursor.Length >= 1 ? mountainData.Cursor[0] : 0, 
+                    mountainData.Cursor.Length >= 2 ? mountainData.Cursor[1] : 0, 
+                    mountainData.Cursor.Length >= 3 ? mountainData.Cursor[2] : 0);
+                //self.Overworld.ReloadMountainStuff();
             }
+
+            // var toHeight = 0f;
+            // switch ((selected as CustomChapterOption).position.displayType) {
+            //     case ChapterMetadata.DisplayType.INFO:
+            //         toHeight = self.GetModeHeight();
+            //         break;
+            //     case ChapterMetadata.DisplayType.PREVIEW:
+            //         toHeight = 730;
+            //         break;
+            //     case ChapterMetadata.DisplayType.NONE:
+            //         toHeight = 300;
+            //         break;
+            // }
+            // self.Add(new Coroutine(toNewSize(toHeight, self)));
+        } else {
+            globalCurrentMountain__gross = null;
+        }
+    }
+
+    private static IEnumerator toNewSize(float toHeight, OuiChapterPanel self) {
+        float fromHeight = self.height;
+        self.resizing = true;
+        self.PlayExpandSfx(fromHeight, toHeight);
+        float offset = 800f;
+        
+        for (var p = 0.0f; p < 1.0; p += Engine.DeltaTime * 4f) {
+            yield return null;
+            self.contentOffset.X = (float)(440.0 + offset * Ease.CubeIn(p));
+            self.height = MathHelper.Lerp(fromHeight, toHeight, Ease.CubeOut(p * 0.5f));
         }
     }
 
@@ -214,32 +259,44 @@ public class CustomChapterPanel {
             instr.Next.Next.MatchLdfld<OuiChapterPanel>("strawberries"));
         cursor.EmitLdarg0();
         cursor.EmitDelegate(CustomRender);
+        
+        cursor.GotoNext(MoveType.After, instr =>
+            instr.MatchLdfld<OuiChapterPanel>("selectingMode"));
+        cursor.EmitLdarg0();
+        cursor.EmitDelegate(disableRender);
     }
 
-    private static bool CustomRender(bool dontRenderCover, OuiChapterPanel self) {
+    private static bool CustomRender(bool orig, OuiChapterPanel self) {
         if (self.options.Count == 0 || !(self.options[0] is CustomChapterOption)) {
-            return dontRenderCover;
+            return orig;
         }
         
-        if (positions.TryGetValue(self, out var position) && 
-            self.option < position.Chapters.Count &&
-            self.option >=0 &&
-            (self.options[self.option] as CustomChapterOption).position.id == -1) {// !storedFakeSwap.Contains(self) && 
-            self.strawberries.Position = self.contentOffset + new Vector2(0.0f, 170f) + self.strawberriesOffset;
-            self.deaths.Position = self.contentOffset + new Vector2(0.0f, 170f) + self.deathsOffset;
-            self.heart.Position = self.contentOffset + new Vector2(0.0f, 170f) + self.heartOffset;
-            self.Components.Render();
-        }
-
-        var parent = positions[self].parent;
-        if (parent != null) {
-            Vector2 center = self.Position + new Vector2(self.contentOffset.X, 340f);
-            for (int index = parent.Chapters.Count - 1; index >= 0; --index) {
-                //self.DrawCheckpoint(center, parent.Chapters[index].option, index);
+        if (positions.TryGetValue(self, out var position)) {// !storedFakeSwap.Contains(self) && 
+            switch ((self.options[self.option] as CustomChapterOption).position.displayType) {
+                case ChapterMetadata.DisplayType.INFO:
+                    self.strawberries.Position = self.contentOffset + new Vector2(0.0f, 170f) + self.strawberriesOffset;
+                    self.deaths.Position = self.contentOffset + new Vector2(0.0f, 170f) + self.deathsOffset;
+                    self.heart.Position = self.contentOffset + new Vector2(0.0f, 170f) + self.heartOffset;
+                    self.Components.Render();
+                    break;
+                case ChapterMetadata.DisplayType.PREVIEW:
+                    Vector2 center = self.Position + new Vector2(self.contentOffset.X, 340f);
+                    for (int index = self.options.Count - 1; index >= 0; --index)
+                        self.DrawCheckpoint(center, self.options[index], index);
+                    break;
+                case ChapterMetadata.DisplayType.NONE: break;
             }
         }
 
-        return false;
+        return false;//dont render
+    }
+
+    private static bool disableRender(bool orig, OuiChapterPanel self) {
+        if (self.options.Count == 0 || !(self.options[0] is CustomChapterOption)) {
+            return orig;
+        }
+
+        return true;//dont render
     }
     
     /*
@@ -261,4 +318,32 @@ public class CustomChapterPanel {
         return val;
     }
     */
+
+    private static void changeMountainMixin(ILContext ctx) {
+        var cursor = new ILCursor(ctx);
+        
+        cursor.GotoNext(MoveType.After, instr =>
+            instr.MatchCall<MountainModel>("hasCustomSettings"));//end of the if condition
+        var endCondLabel = ctx.DefineLabel(cursor.Next.Next);//the first instruction inside the if block's body
+        cursor.GotoPrev(MoveType.Before, instr =>
+            instr.MatchLdsfld<SaveData>("Instance"));//right before the start of the if condition
+        cursor.EmitDelegate(isCustom);
+        cursor.EmitBrtrue(endCondLabel);//if is custom, jump to inside the if block
+    
+        cursor.GotoNext(MoveType.After, instr =>
+            instr.Previous?.MatchLdsfld("Celeste.MTNExt", "MountainMappings") ?? false);
+        cursor.EmitDelegate(customMountain);
+    }
+
+    private static bool isCustom() {
+        Logger.Log("ReallyBigHelper", $"{globalCurrentMountain__gross} exists");
+        if (globalCurrentMountain__gross != null) return true;
+        return false;
+    }
+
+    private static string customMountain(string oldID) {
+        return Path.Combine("Maps", "SpringCollab2020/0-Lobbies/5-Grandmaster").Replace('\\', '/');
+        
+        return oldID;
+    }
 }

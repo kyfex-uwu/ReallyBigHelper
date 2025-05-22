@@ -63,6 +63,30 @@ public class ChapterMetadata {
         set => this._tab = GFX.Gui["areaselect/ReallyBigHelper/tabs/" + value];
     }
 
+    public enum DisplayType {
+        INFO,
+        PREVIEW,
+        NONE
+    }
+
+    private DisplayType _displayType = DisplayType.NONE;
+
+    public string displayType {
+        set {
+            switch (value) {
+                case "info": 
+                    this._displayType = DisplayType.INFO;
+                    break;
+                case "preview": 
+                    this._displayType = DisplayType.PREVIEW;
+                    break;
+                case "none": 
+                    this._displayType = DisplayType.NONE;
+                    break;
+            }
+        }
+    }
+
 #if DEBUG
     public override string ToString() {
         return this.ToString(0);
@@ -119,7 +143,7 @@ public class ChapterMetadata {
         foreach (var chapter in this.Chapters) chapter.Cleanup();
         this.cleaned = new Final(this._tabColor.Value, this._iconColor.Value,
             this._tab, this._icon,
-            this.id, this.text,
+            this.id, this.text, this._displayType,
             new List<Final>(this.Chapters.Select(metadata => metadata.cleaned)),
             this.Mountain);
         foreach (var chapter in this.Chapters) chapter.GiveParent(this.cleaned);
@@ -145,6 +169,7 @@ public class ChapterMetadata {
         public MTexture tab;
         public Color tabColor;
         public string text;
+        public DisplayType displayType;
 
         public MapMetaMountain Mountain;
 
@@ -159,7 +184,7 @@ public class ChapterMetadata {
 
         public Final(Color tabColor, Color iconColor,
             MTexture tab, MTexture icon,
-            int id, string text,
+            int id, string text, DisplayType displayType,
             List<Final> chapters, MapMetaMountain mountain) {
             this.tabColor = tabColor;
             this.iconColor = iconColor;
@@ -167,6 +192,7 @@ public class ChapterMetadata {
             this.icon = icon;
             this.id = Math.Max(id,-1);
             this.text = text;
+            this.displayType = displayType;
             this.Chapters = chapters;
             this.Mountain = mountain;
         }
