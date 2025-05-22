@@ -26,7 +26,7 @@ public class ChapterMetadata {
     private string iconName;
     public int id = -1;
     public string text;
-    public MapMetaMountain Mountain;
+    public CustomMapMetaMountain Mountain;
 
     static ChapterMetadata() {
         iconColors["checkpoint"] = "172B48";
@@ -171,9 +171,9 @@ public class ChapterMetadata {
         public string text;
         public DisplayType displayType;
 
-        public MapMetaMountain Mountain;
+        public CustomMapMetaMountain Mountain;
 
-        public MapMetaMountain GetMountain() {
+        public CustomMapMetaMountain GetMountain() {
             if (this.Mountain == null) {
                 if (this.parent == null) return null;
                 return this.parent.GetMountain();
@@ -185,7 +185,7 @@ public class ChapterMetadata {
         public Final(Color tabColor, Color iconColor,
             MTexture tab, MTexture icon,
             int id, string text, DisplayType displayType,
-            List<Final> chapters, MapMetaMountain mountain) {
+            List<Final> chapters, CustomMapMetaMountain mountain) {
             this.tabColor = tabColor;
             this.iconColor = iconColor;
             this.tab = tab;

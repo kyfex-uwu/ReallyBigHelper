@@ -14,7 +14,7 @@ namespace Celeste.Mod.ReallyBigHelper;
 public class CustomChapterPanel {
     public static readonly Dictionary<OuiChapterPanel, ChapterMetadata.Final> positions = new();
     public static readonly HashSet<OuiChapterPanel> storedFakeSwap = new();
-    private static MapMetaMountain globalCurrentMountain__gross;
+    private static CustomMapMetaMountain globalCurrentMountain__gross;
 
     private static ILHook hookOrigUpdate;
     
@@ -342,7 +342,8 @@ public class CustomChapterPanel {
     }
 
     private static string customMountain(string oldID) {
-        return Path.Combine("Maps", "SpringCollab2020/0-Lobbies/5-Grandmaster").Replace('\\', '/');
+        if(globalCurrentMountain__gross != null)
+            return Path.Combine("Maps", globalCurrentMountain__gross.ReallyBigHelper_MapPath).Replace('\\', '/');
         
         return oldID;
     }
