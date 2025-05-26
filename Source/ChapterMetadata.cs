@@ -26,7 +26,7 @@ public class ChapterMetadata {
     private string iconName;
     public int id = -1;
     public string text;
-    public CustomMapMetaMountain Mountain;
+    public MapMetaMountain Mountain;
 
     static ChapterMetadata() {
         iconColors["checkpoint"] = "172B48";
@@ -171,9 +171,9 @@ public class ChapterMetadata {
         public string text;
         public DisplayType displayType;
 
-        public CustomMapMetaMountain Mountain;
+        public MapMetaMountain Mountain;
 
-        public CustomMapMetaMountain GetMountain() {
+        public MapMetaMountain GetMountain() {
             if (this.Mountain == null) {
                 if (this.parent == null) return null;
                 return this.parent.GetMountain();
@@ -185,7 +185,7 @@ public class ChapterMetadata {
         public Final(Color tabColor, Color iconColor,
             MTexture tab, MTexture icon,
             int id, string text, DisplayType displayType,
-            List<Final> chapters, CustomMapMetaMountain mountain) {
+            List<Final> chapters, MapMetaMountain mountain) {
             this.tabColor = tabColor;
             this.iconColor = iconColor;
             this.tab = tab;
@@ -199,6 +199,8 @@ public class ChapterMetadata {
 
         public OuiChapterPanel.Option option;
         public OuiChapterPanel.Option getOption(OuiChapterPanel holder, string textLabel, string roomName) {
+            if (this.option != null) return this.option;
+            
             this.option = new CustomChapterOption {
                 Bg = this.tab,
                 Icon = this.icon,

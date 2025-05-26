@@ -14,7 +14,6 @@ namespace Celeste.Mod.ReallyBigHelper;
 public class CustomChapterPanel {
     public static readonly Dictionary<OuiChapterPanel, ChapterMetadata.Final> positions = new();
     public static readonly HashSet<OuiChapterPanel> storedFakeSwap = new();
-    private static CustomMapMetaMountain globalCurrentMountain__gross;
 
     private static ILHook hookOrigUpdate;
     
@@ -26,7 +25,6 @@ public class CustomChapterPanel {
         On.Celeste.OuiChapterPanel.Start += startMixin;
         On.Celeste.OuiChapterPanel.Leave += leaveMixin;
         IL.Celeste.OuiChapterPanel.Render += renderMixin;
-        IL.Celeste.MountainModel.BeforeRender += changeMountainMixin;
 
         hookOrigUpdate = new ILHook(typeof(OuiChapterPanel).GetMethod("orig_Update", BindingFlags.Public|BindingFlags.Instance), 
             updateMixin);
@@ -38,7 +36,6 @@ public class CustomChapterPanel {
         On.Celeste.OuiChapterPanel.Start -= startMixin;
         On.Celeste.OuiChapterPanel.Leave -= leaveMixin;
         IL.Celeste.OuiChapterPanel.Render -= renderMixin;
-        IL.Celeste.MountainModel.BeforeRender -= changeMountainMixin;
 
         hookOrigUpdate?.Dispose();
     }
@@ -74,8 +71,6 @@ public class CustomChapterPanel {
             if (!self.selectingMode) {
                 if (!positions.ContainsKey(self)) positions[self] = ReallyBigHelperModule.chapterData[self.Area.SID];
                 self.checkpoints.Clear();
-                
-                foreach (var group in positions[self].Chapters) group.selected = false;
 
                 var checkpointNames = new List<string>();
                 checkpointNames.Add(null);
@@ -119,11 +114,13 @@ public class CustomChapterPanel {
                         self.options[index].CheckpointSlideOut = 1f;
                 } else {
                     self.option = 0;
-                    for (var i = 0; i < positions[self].Chapters.Count; i++)
-                        if (positions[self].Chapters[i].selected)
+                    for (var i = 0; i < self.options.Count; i++)
+                        if ((self.options[i] as CustomChapterOption).position.selected)
                             self.option = i;
                 }
 
+                foreach (var group in positions[self].Chapters) group.selected = false;
+                
                 for (var index = 0; index < self.options.Count; ++index)
                     self.options[index].SlideTowards(index, self.options.Count, true);
             }
@@ -205,7 +202,6 @@ public class CustomChapterPanel {
             }
             
             var mountainData = (selected as CustomChapterOption)?.position?.GetMountain();
-            globalCurrentMountain__gross = mountainData;
             if (mountainData != null) {
                 self.Overworld.Mountain.EaseCamera(self.Area.ID,
                     self.EnteringChapter ? mountainData.Zoom.Convert() : mountainData.Select.Convert(),
@@ -222,7 +218,7 @@ public class CustomChapterPanel {
             }
 
             // var toHeight = 0f;
-            // switch ((selected as CustomChapterOption).position.displayType) {
+            // switch ((selected as CustomChapterOption)?.position.displayType) {
             //     case ChapterMetadata.DisplayType.INFO:
             //         toHeight = self.GetModeHeight();
             //         break;
@@ -232,10 +228,11 @@ public class CustomChapterPanel {
             //     case ChapterMetadata.DisplayType.NONE:
             //         toHeight = 300;
             //         break;
+            //     case null:
+            //         toHeight = -1;
+            //         break;
             // }
-            // self.Add(new Coroutine(toNewSize(toHeight, self)));
-        } else {
-            globalCurrentMountain__gross = null;
+            // if(toHeight>=0) self.Add(new Coroutine(toNewSize(toHeight, self)));
         }
     }
 
@@ -319,32 +316,4 @@ public class CustomChapterPanel {
     }
     */
 
-    private static void changeMountainMixin(ILContext ctx) {
-        var cursor = new ILCursor(ctx);
-        
-        cursor.GotoNext(MoveType.After, instr =>
-            instr.MatchCall<MountainModel>("hasCustomSettings"));//end of the if condition
-        var endCondLabel = ctx.DefineLabel(cursor.Next.Next);//the first instruction inside the if block's body
-        cursor.GotoPrev(MoveType.Before, instr =>
-            instr.MatchLdsfld<SaveData>("Instance"));//right before the start of the if condition
-        cursor.EmitDelegate(isCustom);
-        cursor.EmitBrtrue(endCondLabel);//if is custom, jump to inside the if block
-    
-        cursor.GotoNext(MoveType.After, instr =>
-            instr.Previous?.MatchLdsfld("Celeste.MTNExt", "MountainMappings") ?? false);
-        cursor.EmitDelegate(customMountain);
-    }
-
-    private static bool isCustom() {
-        Logger.Log("ReallyBigHelper", $"{globalCurrentMountain__gross} exists");
-        if (globalCurrentMountain__gross != null) return true;
-        return false;
-    }
-
-    private static string customMountain(string oldID) {
-        if(globalCurrentMountain__gross != null)
-            return Path.Combine("Maps", globalCurrentMountain__gross.ReallyBigHelper_MapPath).Replace('\\', '/');
-        
-        return oldID;
-    }
 }
