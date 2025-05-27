@@ -19,15 +19,6 @@ public class ReallyBigHelperModule : EverestModule {
 
     public static ReallyBigHelperModule Instance { get; private set; }
 
-    public override Type SettingsType => typeof(ReallyBigHelperModuleSettings);
-    public static ReallyBigHelperModuleSettings Settings => (ReallyBigHelperModuleSettings)Instance._Settings;
-
-    public override Type SessionType => typeof(ReallyBigHelperModuleSession);
-    public static ReallyBigHelperModuleSession Session => (ReallyBigHelperModuleSession)Instance._Session;
-
-    public override Type SaveDataType => typeof(ReallyBigHelperModuleSaveData);
-    public static ReallyBigHelperModuleSaveData SaveData => (ReallyBigHelperModuleSaveData)Instance._SaveData;
-
     public override void Load() {
         CustomChapterOption.Load();
         CustomChapterPanel.Load();

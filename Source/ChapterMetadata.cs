@@ -223,14 +223,14 @@ public class ChapterMetadata {
             return this.option;
         }
 
-        public HashSet<int> childIds() {
+        public List<int> childIds() {
             if (this.id >= 0) {
-                return new HashSet<int>{this.id};
+                return new List<int>{this.id};
             }
 
-            var toReturn = new HashSet<int>();
+            var toReturn = new List<int>();
             foreach (var child in this.Chapters) {
-                toReturn.UnionWith(child.childIds());
+                toReturn.AddRange(child.childIds());
             }
 
             return toReturn;

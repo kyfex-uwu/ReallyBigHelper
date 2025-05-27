@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Xna.Framework;
@@ -164,37 +165,38 @@ public class CustomChapterPanel {
     }
 
     private static bool[] updateBerryList(OuiChapterPanel self, CustomChapterOption customOption) {
-        Dictionary<int, bool[]> flagArray = new();
+        List<bool[]> flagArray = new();
+        //Dictionary<int, bool[]> flagArray = new();
         var mode = (int) self.Area.Mode;
-        var subchapterIds = customOption.position.childIds();
-        subchapterIds.RemoveWhere(id => id < 0);
-            
+        var subchapterIds = customOption.position.childIds().FindAll(id => id>=0);
+
+        bool first = true;
         foreach (EntityID strawberry in self.RealStats.Modes[mode].Strawberries) {
-            var found = false;
-            foreach (var subchapter in subchapterIds) {
-                if(!flagArray.ContainsKey(subchapter))
-                    flagArray[subchapter] = new bool[subchapter != 0
-                        ? self.Data.Mode[mode].Checkpoints[subchapter - 1].Strawberries
+            for(int i=0;i<subchapterIds.Count;i++) {
+                bool[] list;
+                if (first) {
+                    list = new bool[subchapterIds[i] != 0
+                        ? self.Data.Mode[mode].Checkpoints[subchapterIds[i] - 1].Strawberries
                         : self.Data.Mode[mode].StartStrawberries];
-                        
-                for (int i = 0; i < flagArray[subchapter].Length;i++) {
-                    EntityData entityData = self.Data.Mode[mode].StrawberriesByCheckpoint[subchapter, i];
+                    flagArray.Add(list);
+                } else list = flagArray[i];
+                
+                for (int i2 = 0; i2 < list.Length;i2++) {
+                    EntityData entityData = self.Data.Mode[mode].StrawberriesByCheckpoint[subchapterIds[i], i2];
                     if (entityData != null && entityData.Level.Name == strawberry.Level &&
                         entityData.ID == strawberry.ID) {
-                        flagArray[subchapter][i] = true;
-                        found = true;
-                        break;
+                        list[i2] = true;
                     }
                 }
-
-                if (found) break;
             }
+
+            first = false;
         }
-        var berryList = new bool[flagArray.Values.Aggregate(0, (total, arr) => total + arr.Length)];
+        var berryList = new bool[flagArray.Aggregate(0, (total, arr) => total + arr.Length)];
         var index = 0;
-        foreach (var key in flagArray.Keys.Order()) {
-            flagArray[key].CopyTo(berryList, index);
-            index += flagArray[key].Length;
+        foreach (var list in flagArray) {
+            list.CopyTo(berryList, index);
+            index += list.Length;
         }
         
         if (!storedFakeSwap.Contains(self)) {
@@ -208,12 +210,12 @@ public class CustomChapterPanel {
     private static void drawCheckpointMixin(On.Celeste.OuiChapterPanel.orig_DrawCheckpoint orig, OuiChapterPanel self,
         Vector2 center, object option, int checkpointIndex) {
         if (option is CustomChapterOption customOption) {
-            if (checkpointIndex == 0||true) {
+            if (self.options[self.option] == option) {
                 var berryList = updateBerryList(self, customOption);
 
                 if (customOption.position.displayType == ChapterMetadata.DisplayType.PREVIEW) {
                     var mode = (int)self.Area.Mode;
-                    MTexture checkpointPreview = MTN.Checkpoints[$"{self.Area.SID}_{customOption.position.text}"];
+                    MTexture checkpointPreview = MTN.Checkpoints[Path.Join(self.Area.SID, customOption.position.text).Replace('\\', '/')];
                     MTexture checkpoint = MTN.Checkpoints["polaroid"];
                     float checkpointRotation = customOption.CheckpointRotation;
                     Vector2 position1 = center + customOption.CheckpointOffset +
