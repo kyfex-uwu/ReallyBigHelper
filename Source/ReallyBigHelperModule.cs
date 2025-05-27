@@ -54,7 +54,9 @@ public class ReallyBigHelperModule : EverestModule {
             ChapterMetadata result;
             if (Everest.Content.TryGet("Maps/" + area.Mode[0].Path + ".reallybig.meta", out metadata)) {
                 metadata.Type = typeof(AssetTypeYaml);
-                if (metadata.TryDeserialize(out result)) chapterData[area.SID] = result.Cleanup();
+                if (metadata.TryDeserialize(out result)) {
+                    chapterData[area.SID] = result.Cleanup();
+                }
             }
         }
     }

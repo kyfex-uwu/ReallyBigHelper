@@ -163,8 +163,6 @@ public class ChapterMetadata {
         public Color iconColor;
         public int id;
 
-        public Final parent;
-        public bool selected = false;
 
         public MTexture tab;
         public Color tabColor;
@@ -172,6 +170,10 @@ public class ChapterMetadata {
         public DisplayType displayType;
 
         public MapMetaMountain Mountain;
+        
+        public Final parent;
+        public bool selected = false;
+        public float transitionAmt = 0;
 
         public MapMetaMountain GetMountain() {
             if (this.Mountain == null) {
@@ -221,14 +223,14 @@ public class ChapterMetadata {
             return this.option;
         }
 
-        public List<int> childIds() {
+        public HashSet<int> childIds() {
             if (this.id >= 0) {
-                return new List<int>{this.id};
+                return new HashSet<int>{this.id};
             }
 
-            var toReturn = new List<int>();
+            var toReturn = new HashSet<int>();
             foreach (var child in this.Chapters) {
-                toReturn.AddRange(child.childIds());
+                toReturn.UnionWith(child.childIds());
             }
 
             return toReturn;

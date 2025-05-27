@@ -1,10 +1,10 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
+using System.Linq;
 using System.Reflection;
-using Celeste.Mod.Meta;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using MonoMod.Cil;
 using MonoMod.RuntimeDetour;
@@ -16,6 +16,11 @@ public class CustomChapterPanel {
     public static readonly HashSet<OuiChapterPanel> storedFakeSwap = new();
 
     private static ILHook hookOrigUpdate;
+
+    private static MethodInfo getStrawberryWidth = typeof(OuiChapterPanel).GetMethod("getStrawberryWidth",
+        BindingFlags.NonPublic | BindingFlags.Instance);
+    private static MethodInfo correctInitialStrawberryOffset = typeof(OuiChapterPanel).GetMethod("correctInitialStrawberryOffset",
+        BindingFlags.NonPublic | BindingFlags.Static);
     
     public static readonly string reallyBigSectionName = Random.Shared.Next() + "ReallyBigSection_";
 
@@ -25,6 +30,7 @@ public class CustomChapterPanel {
         On.Celeste.OuiChapterPanel.Start += startMixin;
         On.Celeste.OuiChapterPanel.Leave += leaveMixin;
         IL.Celeste.OuiChapterPanel.Render += renderMixin;
+        On.Celeste.OuiChapterPanel.GetModeHeight += getHeightMixin;
 
         hookOrigUpdate = new ILHook(typeof(OuiChapterPanel).GetMethod("orig_Update", BindingFlags.Public|BindingFlags.Instance), 
             updateMixin);
@@ -36,6 +42,7 @@ public class CustomChapterPanel {
         On.Celeste.OuiChapterPanel.Start -= startMixin;
         On.Celeste.OuiChapterPanel.Leave -= leaveMixin;
         IL.Celeste.OuiChapterPanel.Render -= renderMixin;
+        On.Celeste.OuiChapterPanel.GetModeHeight -= getHeightMixin;
 
         hookOrigUpdate?.Dispose();
     }
@@ -52,9 +59,26 @@ public class CustomChapterPanel {
             yield return orig(self);
         } else {
             var fromHeight = self.height;
-            var toHeight = (self.selectingMode ^ storedFakeSwap.Contains(self)) ? 730 : self.GetModeHeight();
-            //todo
-            
+            var toHeight = 540;
+            if ((self.selectingMode ^ storedFakeSwap.Contains(self))) {
+                positions.TryGetValue(self, out var pos);
+                if(self.selectingMode && pos == null) pos = ReallyBigHelperModule.chapterData[self.Area.SID];
+                
+                var first = true;
+                foreach (var chapter in pos.Chapters) {
+                    if (chapter.selected || first) {
+                        switch (chapter.displayType) {
+                            case ChapterMetadata.DisplayType.INFO: toHeight = 540; break;
+                            case ChapterMetadata.DisplayType.PREVIEW: toHeight = 730; break;
+                            default: toHeight = 300; break;
+                        }
+
+                        if (chapter.selected) break;
+                    }
+
+                    first = false;
+                }
+            }
             self.resizing = true;
             self.PlayExpandSfx(fromHeight, toHeight);
             var offset = 800f;
@@ -139,13 +163,108 @@ public class CustomChapterPanel {
         }
     }
 
+    private static bool[] updateBerryList(OuiChapterPanel self, CustomChapterOption customOption) {
+        Dictionary<int, bool[]> flagArray = new();
+        var mode = (int) self.Area.Mode;
+        var subchapterIds = customOption.position.childIds();
+        subchapterIds.RemoveWhere(id => id < 0);
+            
+        foreach (EntityID strawberry in self.RealStats.Modes[mode].Strawberries) {
+            var found = false;
+            foreach (var subchapter in subchapterIds) {
+                if(!flagArray.ContainsKey(subchapter))
+                    flagArray[subchapter] = new bool[subchapter != 0
+                        ? self.Data.Mode[mode].Checkpoints[subchapter - 1].Strawberries
+                        : self.Data.Mode[mode].StartStrawberries];
+                        
+                for (int i = 0; i < flagArray[subchapter].Length;i++) {
+                    EntityData entityData = self.Data.Mode[mode].StrawberriesByCheckpoint[subchapter, i];
+                    if (entityData != null && entityData.Level.Name == strawberry.Level &&
+                        entityData.ID == strawberry.ID) {
+                        flagArray[subchapter][i] = true;
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (found) break;
+            }
+        }
+        var berryList = new bool[flagArray.Values.Aggregate(0, (total, arr) => total + arr.Length)];
+        var index = 0;
+        foreach (var key in flagArray.Keys.Order()) {
+            flagArray[key].CopyTo(berryList, index);
+            index += flagArray[key].Length;
+        }
+        
+        if (!storedFakeSwap.Contains(self)) {
+            self.strawberries.Amount = berryList.Count(b => b);
+            self.strawberries.OutOf = berryList.Length;
+        }
+
+        return berryList;
+    }
+
     private static void drawCheckpointMixin(On.Celeste.OuiChapterPanel.orig_DrawCheckpoint orig, OuiChapterPanel self,
         Vector2 center, object option, int checkpointIndex) {
         if (option is CustomChapterOption customOption) {
-            if (customOption.chapterIndex >= 0 && customOption.chapterIndex < customOption.Siblings) {
-                //origDrawCheckpoint.Invoke(self, new object[] { center, option, 0 });//customOption.chapterIndex
-                return;
+            if (checkpointIndex == 0||true) {
+                var berryList = updateBerryList(self, customOption);
+
+                if (customOption.position.displayType == ChapterMetadata.DisplayType.PREVIEW) {
+                    var mode = (int)self.Area.Mode;
+                    MTexture checkpointPreview = MTN.Checkpoints[$"{self.Area.SID}_{customOption.position.text}"];
+                    MTexture checkpoint = MTN.Checkpoints["polaroid"];
+                    float checkpointRotation = customOption.CheckpointRotation;
+                    Vector2 position1 = center + customOption.CheckpointOffset +
+                                        Vector2.UnitX * 800f * Ease.CubeIn(customOption.CheckpointSlideOut);
+                    checkpoint.DrawCentered(position1, Color.White, 0.75f, checkpointRotation);
+                    if (checkpointPreview != null) {
+                        Vector2 scale = Vector2.One * 0.75f;
+                        if (SaveData.Instance.Assists.MirrorMode)
+                            scale.X = -scale.X;
+                        scale *= 720f / checkpointPreview.Width;
+                        HiresRenderer.EndRender();
+                        HiresRenderer.BeginRender(BlendState.AlphaBlend, SamplerState.PointClamp);
+                        checkpointPreview.DrawCentered(position1, Color.White, scale, checkpointRotation);
+                        HiresRenderer.EndRender();
+                        HiresRenderer.BeginRender();
+                    }
+
+                    if (!self.RealStats.Modes[mode].Completed && !SaveData.Instance.CheatMode &&
+                        !SaveData.Instance.DebugMode) return;
+
+                    Vector2 vec = new Vector2(300f, 220f);
+                    Vector2 vector2 = position1 + vec.Rotate(checkpointRotation);
+
+
+                    Vector2 vector = Calc.AngleToVector(checkpointRotation, 1f);
+                    Vector2 position3 = (Vector2)correctInitialStrawberryOffset.Invoke(null, new object[] {
+                        vector2 - vector * berryList.Length *
+                        (float)getStrawberryWidth.Invoke(self,
+                            new object[] { 44f, berryList.Length, checkpointIndex }),
+                        vector
+                    });
+                    if (self.Data.CassetteCheckpointIndex == checkpointIndex) { //todo: redo
+                        Vector2 position4 = position3 - vector * 60f;
+                        if (self.RealStats.Cassette)
+                            MTN.Journal["cassette"].DrawCentered(position4, Color.White, 1f, checkpointRotation);
+                        else
+                            MTN.Journal["cassette_outline"]
+                                .DrawCentered(position4, Color.DarkGray, 1f, checkpointRotation);
+                    }
+
+                    MTexture berryTexture = GFX.Gui["collectables/strawberry"];
+                    for (int i = 0; i < berryList.Length; ++i) {
+                        berryTexture.DrawCentered(position3, berryList[i] ? Color.White : Color.Black * 0.3f, 0.5f,
+                            checkpointRotation);
+                        position3 += vector * (float)getStrawberryWidth.Invoke(self,
+                            new object[] { 44f, berryList.Length, checkpointIndex });
+                    }
+                }
             }
+
+            return;
         }
 
         orig(self, center, option, checkpointIndex);
@@ -179,7 +298,7 @@ public class CustomChapterPanel {
             instr.MatchCall<Entity>("Update"));
         cursor.EmitLdarg0();
         cursor.EmitDelegate(updateMountain);
-
+        
         cursor.GotoNext(MoveType.After, instr =>
             instr.MatchLdstr("event:/ui/world_map/chapter/checkpoint_back"));
         cursor.GotoNext(MoveType.Before, instr =>
@@ -188,8 +307,8 @@ public class CustomChapterPanel {
         cursor.EmitDelegate(interceptBack);
     }
     private static void interceptBack(OuiChapterPanel self) {
-        if (positions.ContainsKey(self) && positions[self].parent != null) {
-            storedFakeSwap.Add(self);//to couteract the swapping back
+        if (positions.ContainsKey(self) && positions[self].parent != null){
+            storedFakeSwap.Add(self); //to couteract the swapping back
             positions[self] = positions[self].parent;
         }
     }
@@ -208,44 +327,28 @@ public class CustomChapterPanel {
                     null, true);
                 self.Overworld.Mountain.Model.EaseState(mountainData.State);
                 
-                self.Overworld.Maddy.Hide();
-                //todo
                 self.Overworld.Maddy.Position = new Vector3(
                     mountainData.Cursor.Length >= 1 ? mountainData.Cursor[0] : 0, 
                     mountainData.Cursor.Length >= 2 ? mountainData.Cursor[1] : 0, 
                     mountainData.Cursor.Length >= 3 ? mountainData.Cursor[2] : 0);
-                //self.Overworld.ReloadMountainStuff();
+            }
+            
+            //--
+
+            if (!self.selectingMode && !self.resizing && position.transitionAmt<1) {
+                self.height = MathHelper.Lerp(self.height, self.GetModeHeight(),
+                    Ease.CubeOut(position.transitionAmt * 0.5f));
+                position.transitionAmt += Engine.DeltaTime;
             }
 
-            // var toHeight = 0f;
-            // switch ((selected as CustomChapterOption)?.position.displayType) {
-            //     case ChapterMetadata.DisplayType.INFO:
-            //         toHeight = self.GetModeHeight();
-            //         break;
-            //     case ChapterMetadata.DisplayType.PREVIEW:
-            //         toHeight = 730;
-            //         break;
-            //     case ChapterMetadata.DisplayType.NONE:
-            //         toHeight = 300;
-            //         break;
-            //     case null:
-            //         toHeight = -1;
-            //         break;
-            // }
-            // if(toHeight>=0) self.Add(new Coroutine(toNewSize(toHeight, self)));
-        }
-    }
-
-    private static IEnumerator toNewSize(float toHeight, OuiChapterPanel self) {
-        float fromHeight = self.height;
-        self.resizing = true;
-        self.PlayExpandSfx(fromHeight, toHeight);
-        float offset = 800f;
-        
-        for (var p = 0.0f; p < 1.0; p += Engine.DeltaTime * 4f) {
-            yield return null;
-            self.contentOffset.X = (float)(440.0 + offset * Ease.CubeIn(p));
-            self.height = MathHelper.Lerp(fromHeight, toHeight, Ease.CubeOut(p * 0.5f));
+            if (Math.Abs(self.height - self.GetModeHeight()) < 0.01) {
+                position.transitionAmt = 0;
+            }
+            
+            //--
+            
+            if(self.options[self.option] is CustomChapterOption customOption && customOption.position != null)
+                updateBerryList(self, self.options[self.option] as CustomChapterOption);
         }
     }
 
@@ -269,10 +372,11 @@ public class CustomChapterPanel {
         }
         
         if (positions.TryGetValue(self, out var position)) {// !storedFakeSwap.Contains(self) && 
-            switch ((self.options[self.option] as CustomChapterOption).position.displayType) {
+            switch ((self.options[self.option] as CustomChapterOption)?.position.displayType) {
                 case ChapterMetadata.DisplayType.INFO:
-                    self.strawberries.Position = self.contentOffset + new Vector2(0.0f, 170f) + self.strawberriesOffset;
-                    self.deaths.Position = self.contentOffset + new Vector2(0.0f, 170f) + self.deathsOffset;
+                    self.strawberries.Position = self.contentOffset + new Vector2(0.0f, 170f+40f) + self.strawberriesOffset;
+                    //self.deaths.Position = self.contentOffset + new Vector2(0.0f, 170f) + self.deathsOffset;
+                    self.deaths.Position = new Vector2(9999, 9999);
                     self.heart.Position = self.contentOffset + new Vector2(0.0f, 170f) + self.heartOffset;
                     self.Components.Render();
                     break;
@@ -295,25 +399,21 @@ public class CustomChapterPanel {
 
         return true;//dont render
     }
-    
-    /*
-    private static void mountainUpdateMixin(ILContext ctx) {
-        var cursor = new ILCursor(ctx);
 
-        cursor.GotoNext(MoveType.After, 
-            instr => instr.MatchCallvirt<MapMetaMountain>("get_ShowCore"));
-        cursor.EmitLdarg0();
-        cursor.EmitDelegate(customMountain);
-    }
+    private static int getHeightMixin(On.Celeste.OuiChapterPanel.orig_GetModeHeight orig, OuiChapterPanel self) {
+        if (positions.TryGetValue(self, out var position)) {
+            if (self.option >= 0 && self.option < self.options.Count) {
+                switch ((self.options[self.option] as CustomChapterOption)?.position.displayType) {
+                    case ChapterMetadata.DisplayType.INFO: return 540;
+                    case ChapterMetadata.DisplayType.PREVIEW: return 730;
+                    case ChapterMetadata.DisplayType.NONE: return 300;
+                }
+            }
 
-    private static bool customMountain(bool val, Overworld self) {
-        var panel = self.UIs.Find(oui => (oui is OuiChapterPanel ouiPanel) && positions.ContainsKey(ouiPanel))
-            as OuiChapterPanel;
-        if (panel != null) {
-            return positions[panel].Mountain.ShowCore;
+            return 540;
         }
-        return val;
+
+        return orig(self);
     }
-    */
 
 }
