@@ -140,6 +140,8 @@ public class ChapterMetadata {
                 this._tabColor.Value.A);
         }
 
+        if (this.Chapters.Count > 0) this.id = -1;
+
         foreach (var chapter in this.Chapters) chapter.Cleanup();
         this.cleaned = new Final(this._tabColor.Value, this._iconColor.Value,
             this._tab, this._icon,
