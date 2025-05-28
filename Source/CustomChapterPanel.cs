@@ -57,7 +57,7 @@ public class CustomChapterPanel {
     //this could be done with il hooks. but why
     private static IEnumerator swapMixin(On.Celeste.OuiChapterPanel.orig_SwapRoutine orig, OuiChapterPanel self) {
         if (!ReallyBigHelperModule.chapterData.ContainsKey(self.Area.SID)) {
-            yield return orig(self);
+            yield return new SwapImmediately(orig(self));
         } else {
             var fromHeight = self.height;
             var toHeight = 540;
