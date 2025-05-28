@@ -6,4 +6,6 @@
     - Name: EverestCore
       Version: 1.5421.0
   OptionalDependencies:
-    - Name: CollabUtils2 
+    - Name: CollabUtils2
+    - Name: MultiheartHelper
+      Version: 0.1.0

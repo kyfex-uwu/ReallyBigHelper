@@ -13,7 +13,7 @@ public class ReallyBigHelperModule : EverestModule {
         Logger.SetLogLevel("ReallyBigHelper", LogLevel.Verbose);
 #else
         // release builds use info logging to reduce spam in log files
-        Logger.SetLogLevel(nameof(ReallyBigHelperModule), LogLevel.Info);
+        Logger.SetLogLevel("ReallyBigHelper", LogLevel.Info);
 #endif
     }
 
@@ -26,6 +26,7 @@ public class ReallyBigHelperModule : EverestModule {
         On.Celeste.AreaData.Load += AreaDataOnLoad;
         
         if(hasCollabUtils2) CollabUtilsCompat.Load();
+        if (hasMultiheart) MHHFeatures.Load();
     }
 
     public override void Unload() {
@@ -35,6 +36,7 @@ public class ReallyBigHelperModule : EverestModule {
         On.Celeste.AreaData.Load -= AreaDataOnLoad;
         
         if(hasCollabUtils2) CollabUtilsCompat.Unload();
+        if (hasMultiheart) MHHFeatures.Unload();
     }
 
     private static void AreaDataOnLoad(On.Celeste.AreaData.orig_Load orig) {
@@ -56,4 +58,6 @@ public class ReallyBigHelperModule : EverestModule {
     
     private static EverestModuleMetadata collabUtils2Dependency = new EverestModuleMetadata { Name = "CollabUtils2" };
     public static readonly bool hasCollabUtils2 = Everest.Loader.DependencyLoaded(collabUtils2Dependency);
+    private static EverestModuleMetadata multiheartDependency = new EverestModuleMetadata { Name = "MultiheartHelper" };
+    public static readonly bool hasMultiheart = Everest.Loader.DependencyLoaded(multiheartDependency);
 }

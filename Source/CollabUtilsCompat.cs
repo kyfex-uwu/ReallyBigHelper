@@ -33,7 +33,7 @@ public class CollabUtilsCompat {
     
     private static bool shouldSwapOverride(OuiChapterPanel self) {
         if (ReallyBigHelperModule.chapterData.ContainsKey(self.Area.SID)) {
-            //this is bad and gross
+            //this is bad and gross and why cant i call orig???
             self.Focused = false;
             self.Overworld.ShowInputUI = !self.selectingMode;
             self.Add(new Coroutine(self.SwapRoutine()));
