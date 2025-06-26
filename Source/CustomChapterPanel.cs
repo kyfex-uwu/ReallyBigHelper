@@ -63,7 +63,8 @@ public class CustomChapterPanel {
             var toHeight = 540;
             if ((self.selectingMode ^ storedFakeSwap.Contains(self))) {
                 positions.TryGetValue(self, out var pos);
-                if(self.selectingMode && pos == null) pos = ReallyBigHelperModule.chapterData[self.Area.SID];
+                if(self.selectingMode && pos == null) 
+                    pos = ReallyBigHelperModule.chapterData[self.Area.SID][(int)self.Area.Mode];
                 
                 var first = true;
                 foreach (var chapter in pos.Chapters) {
@@ -94,7 +95,8 @@ public class CustomChapterPanel {
                 self.selectingMode = !self.selectingMode;
             
             if (!self.selectingMode) {
-                if (!positions.ContainsKey(self)) positions[self] = ReallyBigHelperModule.chapterData[self.Area.SID];
+                if (!positions.ContainsKey(self)) 
+                    positions[self] = ReallyBigHelperModule.chapterData[self.Area.SID][(int)self.Area.Mode];
                 self.checkpoints.Clear();
 
                 var checkpointNames = new List<string>();
@@ -122,7 +124,7 @@ public class CustomChapterPanel {
                     }
 
                     var textLabel = section.text;
-                    if (section.Chapters.Count == 0 &&
+                    if (textLabel == null && section.Chapters.Count == 0 &&
                         section.id >= 0 && section.id < checkpointNames.Count) {
                         textLabel = checkpointNames[section.id];
                     }
