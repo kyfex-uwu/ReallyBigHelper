@@ -45,7 +45,7 @@ public class ReallyBigHelperModule : EverestModule {
         foreach (var area in AreaData.Areas) {
             ModAsset metadata;
             ChapterMetadata result;
-            if (Everest.Content.TryGet("Maps/" + area.Mode[0].Path + ".reallybig.meta", out metadata)) {
+            if (Everest.Content.TryGet("Maps/" + area.Mode[0].Path + ".reallybig.meta.yaml", out metadata)) {
                 metadata.Type = typeof(AssetTypeYaml);
                 if (metadata.TryDeserialize(out result)) {
                     chapterData[area.SID] = result.Cleanup();
