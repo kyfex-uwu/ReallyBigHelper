@@ -6,6 +6,6 @@
       Version: 1.5421.0
   OptionalDependencies:
     - Name: CollabUtils2
-      Version: 0.1.0
+      Version: 1.10.14
     - Name: MultiheartHelper
       Version: 0.1.0
