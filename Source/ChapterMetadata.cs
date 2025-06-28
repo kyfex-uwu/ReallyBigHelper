@@ -28,6 +28,9 @@ public class ChapterMetadata {
     public string text;
     public MapMetaMountain Mountain;
 
+    public string MHH_HeartID = null;
+    public string MHH_HeartXMLPath = null;
+
     static ChapterMetadata() {
         iconColors["checkpoint"] = "172B48";
         iconColors["startpoint"] = "432007";
@@ -105,6 +108,8 @@ public class ChapterMetadata {
 #endif
 
     public Final Cleanup() {
+        if (this.Chapters == null) this.Chapters = new();
+        
         if (this._icon == null) {
             if (this.Chapters.Count == 0) {
                 if (this.id == 0)
@@ -147,7 +152,7 @@ public class ChapterMetadata {
             this._tab, this._icon,
             this.id, this.text, this._displayType,
             new List<Final>(this.Chapters.Select(metadata => metadata.cleaned)),
-            this.Mountain);
+            this.Mountain, this.MHH_HeartID, this.MHH_HeartXMLPath);
         foreach (var chapter in this.Chapters) chapter.GiveParent(this.cleaned);
 
         return this.cleaned;
@@ -172,6 +177,9 @@ public class ChapterMetadata {
         public DisplayType displayType;
 
         public MapMetaMountain Mountain;
+
+        public string MHH_HeartID;
+        public string MHH_HeartDisplayPath;
         
         public Final parent;
         public bool selected = false;
@@ -189,7 +197,8 @@ public class ChapterMetadata {
         public Final(Color tabColor, Color iconColor,
             MTexture tab, MTexture icon,
             int id, string text, DisplayType displayType,
-            List<Final> chapters, MapMetaMountain mountain) {
+            List<Final> chapters, MapMetaMountain mountain,
+            string mhhId, string mhhPath) {
             this.tabColor = tabColor;
             this.iconColor = iconColor;
             this.tab = tab;
@@ -199,6 +208,8 @@ public class ChapterMetadata {
             this.displayType = displayType;
             this.Chapters = chapters;
             this.Mountain = mountain;
+            this.MHH_HeartID = mhhId;
+            this.MHH_HeartDisplayPath = mhhPath;
         }
 
         public OuiChapterPanel.Option option;
@@ -219,6 +230,7 @@ public class ChapterMetadata {
                 CheckpointOffset = new Vector2(Calc.Random.Range(-16, 16), Calc.Random.Range(-16, 16)),
                 Large = false,
                 Siblings = CustomChapterPanel.positions[holder].Chapters.Count,
+                MHHData = new CustomChapterOption.MHHDataObj(this.MHH_HeartID, this.MHH_HeartDisplayPath),
                 
                 position = this
             };

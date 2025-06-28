@@ -32,6 +32,7 @@ public class CustomChapterPanel {
         On.Celeste.OuiChapterPanel.Leave += leaveMixin;
         IL.Celeste.OuiChapterPanel.Render += renderMixin;
         On.Celeste.OuiChapterPanel.GetModeHeight += getHeightMixin;
+        On.Celeste.OuiChapterPanel.Update += customHeartUpdate;
 
         hookOrigUpdate = new ILHook(typeof(OuiChapterPanel).GetMethod("orig_Update", BindingFlags.Public|BindingFlags.Instance), 
             updateMixin);
@@ -44,6 +45,7 @@ public class CustomChapterPanel {
         On.Celeste.OuiChapterPanel.Leave -= leaveMixin;
         IL.Celeste.OuiChapterPanel.Render -= renderMixin;
         On.Celeste.OuiChapterPanel.GetModeHeight -= getHeightMixin;
+        On.Celeste.OuiChapterPanel.Update -= customHeartUpdate;
 
         hookOrigUpdate?.Dispose();
     }
@@ -370,18 +372,43 @@ public class CustomChapterPanel {
         cursor.EmitDelegate(disableRender);
     }
 
+    private static Sprite customHeartSprite;
+    private static string customHeartID;
     private static bool CustomRender(bool orig, OuiChapterPanel self) {
         if (self.options.Count == 0 || !(self.options[0] is CustomChapterOption)) {
             return orig;
         }
         
         if (positions.TryGetValue(self, out var position)) {// !storedFakeSwap.Contains(self) && 
-            switch ((self.options[self.option] as CustomChapterOption)?.position.displayType) {
+            var selectedOption = self.options[self.option] as CustomChapterOption;
+            switch (selectedOption?.position.displayType) {
                 case ChapterMetadata.DisplayType.INFO:
                     self.strawberries.Position = self.contentOffset + new Vector2(0.0f, 170f+40f) + self.strawberriesOffset;
                     //self.deaths.Position = self.contentOffset + new Vector2(0.0f, 170f) + self.deathsOffset;
                     self.deaths.Position = new Vector2(9999, 9999);
-                    self.heart.Position = self.contentOffset + new Vector2(0.0f, 170f) + self.heartOffset;
+                    var customHeart = false;
+                    var heartPos = self.contentOffset + new Vector2(0.0f, 170f) + self.heartOffset;
+                    if (ReallyBigHelperModule.hasMultiheart && selectedOption.position.MHH_HeartDisplayPath != null) {
+                        customHeart = true;
+                        if (MHHFeatures.heartIsCollected(AreaData.Get(self.Area), selectedOption.position.MHH_HeartID)) {
+                            if (customHeartSprite == null || customHeartID != selectedOption.position.MHH_HeartDisplayPath) {
+                                customHeartSprite = GFX.GuiSpriteBank.Create(selectedOption.position.MHH_HeartDisplayPath);
+                                customHeartID = selectedOption.position.MHH_HeartDisplayPath;
+                                customHeartSprite.Play("spin");
+                            }
+
+                            customHeartSprite.Position = heartPos + self.Position;
+                            customHeartSprite.Render();
+                        }
+                    }
+
+                    if (!customHeart) {
+                        self.heart.Position = heartPos;
+                        customHeartSprite = null;
+                        customHeartID = null;
+                    } else {
+                        self.heart.Position = new Vector2(9999, 9999);
+                    }
                     self.Components.Render();
                     break;
                 case ChapterMetadata.DisplayType.PREVIEW:
@@ -394,6 +421,11 @@ public class CustomChapterPanel {
         }
 
         return false;//dont render
+    }
+
+    private static void customHeartUpdate(On.Celeste.OuiChapterPanel.orig_Update orig, OuiChapterPanel self) {
+        if (self.initialized && customHeartSprite!=null) customHeartSprite.Update();
+        orig(self);
     }
 
     private static bool disableRender(bool orig, OuiChapterPanel self) {

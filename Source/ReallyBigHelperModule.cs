@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Celeste.Mod.ReallyBigHelper;
 
@@ -91,6 +92,6 @@ public class ReallyBigHelperModule : EverestModule {
     
     private static EverestModuleMetadata collabUtils2Dependency = new EverestModuleMetadata { Name = "CollabUtils2" };
     public static readonly bool hasCollabUtils2 = Everest.Loader.DependencyLoaded(collabUtils2Dependency);
-    private static EverestModuleMetadata multiheartDependency = new EverestModuleMetadata { Name = "MultiheartHelper" };
+    private static EverestModuleMetadata multiheartDependency = new EverestModuleMetadata { Name = "MultiheartHelper", Version = new Version(0,1,0)};
     public static readonly bool hasMultiheart = Everest.Loader.DependencyLoaded(multiheartDependency);
 }

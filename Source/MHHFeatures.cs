@@ -10,14 +10,11 @@ public class MHHFeatures {
         
     }
 
-    public static void drawHearts(AreaData key) {
-        if (!MultiheartHelperModule.multiheartData.TryGetValue(key, out var multiheartMetadata) || 
-            !MultiheartHelperModule.SaveData.TryGetData(key.ID, out var data)) return;
-        
-        foreach (HeartInfo heart in multiheartMetadata.Hearts) {
-            if (data.unlockedHearts.Contains(heart.Name)) {
-                //heart.Texture
-            }
+    public static bool heartIsCollected(AreaData area, string id) {
+        if (MultiheartHelperModule.SaveData.TryGetData(area.ID, out var data)) {
+            return data.unlockedHearts.Contains(id);
         }
+
+        return false;
     }
 }

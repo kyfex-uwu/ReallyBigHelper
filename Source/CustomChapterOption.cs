@@ -9,6 +9,9 @@ public class CustomChapterOption : OuiChapterPanel.Option {
     public int chapterIndex;
     public ChapterMetadata.Final position;
     private string _untranslatedName;
+    public MHHDataObj MHHData;
+
+    public record MHHDataObj(string id, string path);
 
     public string untranslatedName {
         set {
