@@ -26,20 +26,9 @@
         <PackageReference Include="CelesteMod.Publicizer" Version="*" CelesteAssembly="$(CelestePrefix)\Celeste.dll" />
         <Reference Include="$(CelestePrefix)\MMHOOK_Celeste.dll" Private="false" />
         <Reference Include="$(CelestePrefix)\FNA.dll" Private="false" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <PackageReference Include="CelesteMod.Publicizer" Version="*" CelesteAssembly="$(CelestePrefix)\Celeste.dll" />
-        <Reference Include="$(CelestePrefix)\MMHOOK_Celeste.dll" Private="false" />
-        <Reference Include="$(CelestePrefix)\FNA.dll" Private="false" />
         <Reference Include="CelesteNet.Client">
             <HintPath>..\deps\CollabUtils2.dll</HintPath>
         </Reference>
-    </ItemGroup>
-    <ItemGroup>
-        <PackageReference Include="CelesteMod.Publicizer" Version="*" CelesteAssembly="$(CelestePrefix)\Celeste.dll" />
-        <Reference Include="$(CelestePrefix)\MMHOOK_Celeste.dll" Private="false" />
-        <Reference Include="$(CelestePrefix)\FNA.dll" Private="false" />
         <Reference Include="CelesteNet.Client">
             <HintPath>..\deps\MultiheartHelper.dll</HintPath>
         </Reference>

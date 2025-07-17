@@ -10,6 +10,7 @@ public class CustomChapterOption : OuiChapterPanel.Option {
     public ChapterMetadata.Final position;
     private string _untranslatedName;
     public MHHDataObj MHHData;
+    public bool shouldDrawPreview=false;
 
     public record MHHDataObj(string id, string path);
 
