@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Celeste.Mod.Meta;
 using Microsoft.Xna.Framework;
@@ -7,17 +8,65 @@ using Monocle;
 
 namespace Celeste.Mod.ReallyBigHelper;
 
-public class ChapterMetadata {
-    private static readonly Dictionary<string, string> iconColors = new();
-    private static readonly Dictionary<string, string> tabColorsWithIcon = new();
+public class ThemeData {
+    public string tabColor;
 
-    private static readonly double lightenAmt = 0.4;
+    public string iconColor;
+
+    public string tab;
+
+    public static Dictionary<string, ThemeData> apply(Dictionary<string, ThemeData> custom, Dictionary<string, ThemeData> parent) {
+        var toReturn = new Dictionary<string, ThemeData>();
+        toReturn["checkpoint"] = new ThemeData{
+            tabColor = "3C6180",
+            iconColor = "172B48",
+            tab = "chevron",
+        };
+        toReturn["startpoint"] = new ThemeData{
+            tabColor = "EABE26",
+            iconColor = "432007",
+            tab = "chevron",
+        };
+        toReturn["checkpoints"] = new ThemeData{
+            tabColor = "6f3C80",
+            iconColor = "311748",
+            tab = "chevron",
+        };
+        toReturn["circle"] = new ThemeData{
+            tabColor = "72975C",
+            iconColor = "2A5312",
+            tab = "chevron",
+        };
+        toReturn["heart"] = new ThemeData{
+            tabColor = "E483B4",
+            iconColor = "8F226D",
+            tab = "chevron",
+        };
+        toReturn["berry"] = new ThemeData{
+            tabColor = "DA6178",
+            iconColor = "5C151A",
+            tab = "chevron",
+        };
+        
+        foreach (var (key, data) in parent) {
+            toReturn[key] = data;
+        }
+        foreach (var (key, data) in custom) {
+            toReturn[key] = data;
+        }
+
+        return toReturn;
+    }
+}
+
+public class ChapterMetadata {
+    private static readonly double darkenFactor = 0.4;
 
     private MTexture _icon;
 
     private Color? _iconColor;
 
-    private MTexture _tab = GFX.Gui["areaselect/ReallyBigHelper/tabs/chevron"];
+    private MTexture _tab;
 
     private Color? _tabColor;
 
@@ -31,28 +80,23 @@ public class ChapterMetadata {
     public string MHH_HeartID = null;
     public string MHH_HeartXMLPath = null;
 
-    static ChapterMetadata() {
-        iconColors["checkpoint"] = "172B48";
-        iconColors["startpoint"] = "432007";
-        iconColors["checkpoints"] = "311748";
-        iconColors["circle"] = "2A5312";
-        iconColors["heart"] = "8F226D";
-        iconColors["berry"] = "5C151A";
-
-        tabColorsWithIcon["checkpoint"] = "3C6180";
-        tabColorsWithIcon["startpoint"] = "EABE26";
-        tabColorsWithIcon["checkpoints"] = "6f3C80";
-        tabColorsWithIcon["circle"] = "72975C";
-        tabColorsWithIcon["heart"] = "E483B4";
-        tabColorsWithIcon["berry"] = "DA6178";
-    }
+    public Dictionary<string, ThemeData> Theme;
+    private Dictionary<string, ThemeData> parentTheme;
 
     public string tabColor {
         set => this._tabColor = Calc.HexToColor(value);
+        get => this._tabColor == null ? null : this._tabColor.Value.R.ToString("X2") +
+                                               this._tabColor.Value.G.ToString("X2") +
+                                               this._tabColor.Value.B.ToString("X2") +
+                                               this._tabColor.Value.A.ToString("X2");
     }
 
     public string iconColor {
         set => this._iconColor = Calc.HexToColor(value);
+        get => this._iconColor == null ? null : this._iconColor.Value.R.ToString("X2") +
+                                                this._iconColor.Value.G.ToString("X2") +
+                                                this._iconColor.Value.B.ToString("X2") +
+                                                this._iconColor.Value.A.ToString("X2");
     }
 
     public string icon {
@@ -63,7 +107,7 @@ public class ChapterMetadata {
     }
 
     public string tab {
-        set => this._tab = GFX.Gui["areaselect/ReallyBigHelper/tabs/" + value];
+        set => this._tab = value==null?null:GFX.Gui["areaselect/ReallyBigHelper/tabs/" + value];
     }
 
     public enum DisplayType {
@@ -107,8 +151,33 @@ public class ChapterMetadata {
     }
 #endif
 
+    private static string darken(string color) {
+        if (color == null) return null;
+        while (color.Length < 8) color += "f";
+        return
+            ((int)Math.Round(int.Parse(color.Substring(0, 2), NumberStyles.HexNumber) * darkenFactor)).ToString("X2") +
+            ((int)Math.Round(int.Parse(color.Substring(2, 2), NumberStyles.HexNumber) * darkenFactor)).ToString("X2") +
+            ((int)Math.Round(int.Parse(color.Substring(4, 2), NumberStyles.HexNumber) * darkenFactor)).ToString("X2") +
+            ((int)Math.Round(int.Parse(color.Substring(6, 2), NumberStyles.HexNumber) * darkenFactor)).ToString("X2");
+    }
+    private static string lighten(string color) {
+        if (color == null) return null;
+        while (color.Length < 8) color += "f";
+        return
+            ((int)Math.Round(255 - (255 - int.Parse(color.Substring(0, 2), NumberStyles.HexNumber)) * darkenFactor))
+                .ToString("X2") +
+            ((int)Math.Round(255 - (255 - int.Parse(color.Substring(2, 2), NumberStyles.HexNumber)) * darkenFactor))
+                .ToString("X2") +
+            ((int)Math.Round(255 - (255 - int.Parse(color.Substring(4, 2), NumberStyles.HexNumber)) * darkenFactor))
+                .ToString("X2") +
+            ((int)Math.Round(255 - (255 - int.Parse(color.Substring(6, 2), NumberStyles.HexNumber)) * darkenFactor))
+                .ToString("X2");
+    }
     public Final Cleanup() {
         if (this.Chapters == null) this.Chapters = new();
+        var theme = this.Theme ?? new Dictionary<string, ThemeData>();
+        if (this.parentTheme != null) theme = ThemeData.apply(theme, this.parentTheme);
+        foreach (var chapter in this.Chapters) chapter.GiveParentTheme(theme);
         
         if (this._icon == null) {
             if (this.Chapters.Count == 0) {
@@ -121,28 +190,37 @@ public class ChapterMetadata {
             }
         }
 
+        string iconColor = null;
+        string tabColor = null;
+        if (theme.TryGetValue(this.iconName, out var v)) {
+            iconColor = v.iconColor;
+            tabColor = v.tabColor;
+            this.tab = v.tab;
+        }
         if (!this._tabColor.HasValue) {
             if (!this._iconColor.HasValue) {
-                if (iconColors.ContainsKey(this.iconName)) {
-                    this.iconColor = iconColors[this.iconName];
-                    this.tabColor = tabColorsWithIcon[this.iconName];
-                } else {
-                    this.iconColor = "ffffff";
-                    this.tabColor = tabColorsWithIcon["checkpoint"];
-                }
+                this.iconColor = darken(this.tabColor) ??
+                                 iconColor ?? 
+                                 darken(tabColor) ??
+                                 "ffffff";
+                this.tabColor = //lighten(this.iconColor) ?? //because we don't want to go off of a color we just set
+                                tabColor ??
+                                lighten(iconColor) ??
+                                "ffffff";
             } else {
-                this._tabColor = new Color(
-                    (int)(255 - (255 - this._iconColor.Value.R) * lightenAmt),
-                    (int)(255 - (255 - this._iconColor.Value.G) * lightenAmt),
-                    (int)(255 - (255 - this._iconColor.Value.B) * lightenAmt),
-                    this._iconColor.Value.A);
+                this.tabColor = lighten(this.iconColor) ?? 
+                                tabColor ??
+                                lighten(iconColor) ??
+                                "ffffff";
             }
         } else if (!this._iconColor.HasValue) {
-            this._iconColor = new Color(
-                (int)(255 - (255 - this._tabColor.Value.R) / lightenAmt),
-                (int)(255 - (255 - this._tabColor.Value.G) / lightenAmt),
-                (int)(255 - (255 - this._tabColor.Value.B) / lightenAmt),
-                this._tabColor.Value.A);
+            this.iconColor = darken(this.tabColor) ?? 
+                             iconColor ??
+                             darken(tabColor) ?? 
+                             "ffffff";
+        }
+        if (this._tab == null) {
+            this.tab = "chevron";
         }
 
         if (this.Chapters.Count > 0) this.id = -1;
@@ -160,6 +238,9 @@ public class ChapterMetadata {
 
     private void GiveParent(Final parent) {
         this.cleaned.parent = parent;
+    }
+    private void GiveParentTheme(Dictionary<string, ThemeData> theme) {
+        this.parentTheme = theme;
     }
 
     public record Final {

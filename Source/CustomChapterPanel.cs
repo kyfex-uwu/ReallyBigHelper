@@ -467,7 +467,6 @@ public class CustomChapterPanel {
                 case ChapterMetadata.DisplayType.NONE: break;
             }
 
-            var currentIsPolaroid = false;
             switch (selectedOption?.position.displayType) {
                 case ChapterMetadata.DisplayType.INFO:
                     var xOffs = 800 * Ease.CubeIn((Math.Clamp(position.transitionAmt, 0.75f, 1) - 0.75f)*4);
@@ -503,8 +502,6 @@ public class CustomChapterPanel {
                     self.Components.Render();
                     break;
                 case ChapterMetadata.DisplayType.PREVIEW:
-                    currentIsPolaroid = true;
-                    
                     selectedOption.shouldDrawPreview = true;
                     Vector2 center = self.Position + new Vector2(self.contentOffset.X +
                         800 * Ease.CubeIn(Math.Clamp(position.transitionAmt-0.75f, 0, 0.25f) * 4), 340f);
