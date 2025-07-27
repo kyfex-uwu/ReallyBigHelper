@@ -126,7 +126,7 @@ public class ReallyBigHelperModule : EverestModule {
 
     private static void onChapterSelect(On.Celeste.OuiChapterSelect.orig_Update orig, OuiChapterSelect self) {
         orig(self);
-        if (mountainExtData.TryGetValue(SaveData.Instance?.LastArea_Safe.ID ?? -1, out var data)) {
+        if (mountainExtData.TryGetValue(SaveData.Instance?.LastArea_Safe.ID ?? -1, out var data) && data!=null) {
             MountainModelExtensions.globalSkyboxScale = data.ReallyBigHelper_SkyboxScale;
         }else {
             MountainModelExtensions.globalSkyboxScale = 1;
