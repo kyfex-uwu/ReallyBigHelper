@@ -129,7 +129,7 @@ public class ReallyBigHelperModule : EverestModule {
         if (mountainExtData.TryGetValue(SaveData.Instance?.LastArea_Safe.ID ?? -1, out var data) && data!=null) {
             MountainModelExtensions.globalSkyboxScale = data.ReallyBigHelper_SkyboxScale;
         }else {
-            MountainModelExtensions.globalSkyboxScale = 1;
+            MountainModelExtensions.globalSkyboxScale = -1;
 
         }
     }

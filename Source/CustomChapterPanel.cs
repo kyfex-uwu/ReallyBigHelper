@@ -189,7 +189,8 @@ public class CustomChapterPanel {
                         : self.Data.Mode[mode].StartStrawberries];
                     flagArray.Add(list);
                 } else list = flagArray[i];
-                
+
+                list = new bool[]{ };
                 for (int i2 = 0; i2 < list.Length;i2++) {
                     EntityData entityData = self.Data.Mode[mode].StrawberriesByCheckpoint[subchapterIds[i], i2];
                     if (entityData != null && entityData.Level.Name == strawberry.Level &&

@@ -21,10 +21,14 @@ public class MountainModelExtensions {
         IL.Celeste.MountainModel.BeforeRender -= setFarPlane;
     }
 
-    public static float globalSkyboxScale=1;
+    public static float globalSkyboxScale=-1;
     private static void skyboxScale(On.Celeste.Skybox.orig_Draw orig, Skybox skybox, Matrix matrix, Color color) {
-        var scale = Matrix.CreateScale(new Vector3(globalSkyboxScale, globalSkyboxScale, globalSkyboxScale));
-        orig(skybox, Matrix.Multiply(scale, matrix), color);
+        if (globalSkyboxScale>1) {
+            matrix = Matrix.Multiply(
+                Matrix.CreateScale(new Vector3(globalSkyboxScale, globalSkyboxScale, globalSkyboxScale)), matrix);
+        }
+
+        orig(skybox, matrix, color);
     }
 
     private static void setFarPlane(ILContext ctx) {
@@ -36,6 +40,7 @@ public class MountainModelExtensions {
     }
 
     private static float setFarPlane_internal(float orig, MountainModel self) {
-        return 50*globalSkyboxScale;
+        if (globalSkyboxScale>1) return 50 * globalSkyboxScale;
+        return orig;
     }
 }
