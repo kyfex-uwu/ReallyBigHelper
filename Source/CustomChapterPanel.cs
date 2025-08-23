@@ -178,21 +178,16 @@ public class CustomChapterPanel {
         //Dictionary<int, bool[]> flagArray = new();
         var mode = (int) self.Area.Mode;
         var subchapterIds = customOption.position.childIds().FindAll(id => id>=0);
+        
+        for(int i=0;i<subchapterIds.Count;i++) {
+            bool[] list = new bool[subchapterIds[i] != 0
+                ? self.Data.Mode[mode].Checkpoints[subchapterIds[i] - 1].Strawberries
+                : self.Data.Mode[mode].StartStrawberries];
+            flagArray.Add(list);
 
-        bool first = true;
-        foreach (EntityID strawberry in self.RealStats.Modes[mode].Strawberries) {
-            for(int i=0;i<subchapterIds.Count;i++) {
-                bool[] list;
-                if (first) {
-                    list = new bool[subchapterIds[i] != 0
-                        ? self.Data.Mode[mode].Checkpoints[subchapterIds[i] - 1].Strawberries
-                        : self.Data.Mode[mode].StartStrawberries];
-                    flagArray.Add(list);
-                } else list = flagArray[i];
-
-                list = new bool[]{ };
-                for (int i2 = 0; i2 < list.Length;i2++) {
-                    EntityData entityData = self.Data.Mode[mode].StrawberriesByCheckpoint[subchapterIds[i], i2];
+            for (int i2 = 0; i2 < list.Length;i2++) {
+                foreach (EntityID strawberry in self.RealStats.Modes[mode].Strawberries) {
+                    EntityData entityData = self.Data.Mode[mode].StrawberriesByCheckpoint[subchapterIds[i], 0];
                     if (entityData != null && entityData.Level.Name == strawberry.Level &&
                         entityData.ID == strawberry.ID) {
                         list[i2] = true;
@@ -200,7 +195,6 @@ public class CustomChapterPanel {
                 }
             }
 
-            first = false;
         }
         var berryList = new bool[flagArray.Aggregate(0, (total, arr) => total + arr.Length)];
         var index = 0;
