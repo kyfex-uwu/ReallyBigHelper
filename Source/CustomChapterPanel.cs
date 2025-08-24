@@ -149,7 +149,6 @@ public class CustomChapterPanel {
 
                 for (var index = 0; index < self.checkpoints.Count - 1; ++index)
                     self.options[index].CheckpointSlideOut = 1f;
-                foreach (var group in positions[self].Chapters) group.selected = false;
                 for (var index = 0; index < self.options.Count; ++index)
                     self.options[index].SlideTowards(index, self.options.Count, true);
                 
@@ -286,6 +285,7 @@ public class CustomChapterPanel {
         var next = (self.options[self.option] as CustomChapterOption).position;
         if (next.Chapters.Count < 1) return;
 
+        foreach (var group in positions[self].Chapters) group.selected = false;
         positions[self] = next;
         positions[self].selected = true;
         storedFakeSwap.Add(self);//to couteract the swapping back
@@ -337,6 +337,8 @@ public class CustomChapterPanel {
     private static void interceptBack(OuiChapterPanel self) {
         if (positions.ContainsKey(self) && positions[self].parent != null){
             storedFakeSwap.Add(self); //to couteract the swapping back
+            foreach (var group in positions[self].Chapters) group.selected = false;
+            positions[self].Chapters[self.option].selected = true;
             positions[self] = positions[self].parent;
         }
     }
