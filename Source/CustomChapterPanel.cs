@@ -139,24 +139,21 @@ public class CustomChapterPanel {
                             checkpointNames[section.id] : null));
                 }
 
-                if (!self.RealStats.Modes[(int)self.Area.Mode].Completed && !SaveData.Instance.DebugMode &&
-                    !SaveData.Instance.CheatMode) {
-                    self.option = self.checkpoints.Count - 1; //"last" checkpoint (might need to edit)
-                    for (var index = 0; index < self.checkpoints.Count - 1; ++index)
-                        self.options[index].CheckpointSlideOut = 1f;
-                } else {
-                    self.option = 0;
-                    for (var i = 0; i < self.options.Count; i++)
-                        if ((self.options[i] as CustomChapterOption).position.selected)
-                            self.option = i;
+                self.option = self.checkpoints.Count - 1;
+                for (int i = 0; i < positions[self].Chapters.Count; i++) {
+                    if (positions[self].Chapters[i].selected) {
+                        self.option = i;
+                        break;
+                    }
                 }
 
-                targetHeight = self.GetModeHeight();
-
+                for (var index = 0; index < self.checkpoints.Count - 1; ++index)
+                    self.options[index].CheckpointSlideOut = 1f;
                 foreach (var group in positions[self].Chapters) group.selected = false;
-                
                 for (var index = 0; index < self.options.Count; ++index)
                     self.options[index].SlideTowards(index, self.options.Count, true);
+                
+                targetHeight = self.GetModeHeight();
             }
 
             self.options[self.option].Pop = 1f;
@@ -419,10 +416,8 @@ public class CustomChapterPanel {
                     var xOffs = 800 * Ease.CubeIn(Math.Clamp(1-position.transitionAmt, 0, 0.25f)*4);
                     if (lastMovingFrom == CameFrom.VERT) xOffs = position.transitionAmt>0.92?0:800;
                     
-                    self.strawberries.Position = self.contentOffset + new Vector2(xOffs, 170f+40f) + self.strawberriesOffset;
-                    //self.deaths.Position = self.contentOffset + new Vector2(0.0f, 170f) + self.deathsOffset;
-                    self.deaths.Position = new Vector2(9999, 9999);
                     var customHeart = false;
+                    var drawnHeart = false;
                     var heartPos = self.contentOffset + new Vector2(xOffs, 170f) + self.heartOffset;
                     if (ReallyBigHelperModule.hasMultiheart && 
                         prevOption.position.MHH_HeartDisplayPath != null) {
@@ -436,6 +431,7 @@ public class CustomChapterPanel {
 
                             customHeartSprite.Position = heartPos + self.Position;
                             customHeartSprite.Render();
+                            drawnHeart = true;
                         }
                     }
 
@@ -443,10 +439,21 @@ public class CustomChapterPanel {
                         self.heart.Position = heartPos;
                         customHeartSprite = null;
                         customHeartID = null;
+                        drawnHeart = true;
                     } else {
                         self.heart.Position = new Vector2(9999, 9999);
                     }
 
+                    if (drawnHeart) {
+                        self.strawberriesOffset = new Vector2(120f, (self.deaths.Visible||true) ? -40f : 0.0f);
+                    } else {
+                        self.strawberriesOffset = new Vector2(0f, (self.deaths.Visible||true) ? -40f : 0.0f);
+                    }
+
+                    self.strawberries.Position = self.contentOffset + new Vector2(xOffs, 170f+40f) + self.strawberriesOffset;
+                    //self.deaths.Position = self.contentOffset + new Vector2(0.0f, 170f) + self.deathsOffset;
+                    self.deaths.Position = new Vector2(9999, 9999);
+                    
                     var realStrawbCount = self.strawberries.Amount;
                     var realStrawbOutOf = self.strawberries.OutOf;
                     var berries = getBerryList(self, prevOption);
@@ -465,12 +472,10 @@ public class CustomChapterPanel {
             switch (selectedOption?.position.displayType) {
                 case ChapterMetadata.DisplayType.INFO:
                     var xOffs = 800 * Ease.CubeIn((Math.Clamp(position.transitionAmt, 0.75f, 1) - 0.75f)*4);
-                    
-                    self.strawberries.Position = self.contentOffset + new Vector2(xOffs, 170f+40f) + self.strawberriesOffset;
-                    //self.deaths.Position = self.contentOffset + new Vector2(0.0f, 170f) + self.deathsOffset;
-                    self.deaths.Position = new Vector2(9999, 9999);
                     var heartPos = self.contentOffset + new Vector2(xOffs, 170f) + self.heartOffset;
+                    
                     var customHeart = false;
+                    var drawnHeart = false;
                     if (ReallyBigHelperModule.hasMultiheart && 
                         selectedOption.position.displayType == ChapterMetadata.DisplayType.INFO &&
                         selectedOption.position.MHH_HeartDisplayPath != null) {
@@ -484,6 +489,7 @@ public class CustomChapterPanel {
 
                             customHeartSprite.Position = heartPos + self.Position;
                             customHeartSprite.Render();
+                            drawnHeart = true;
                         }
                     }
 
@@ -491,9 +497,21 @@ public class CustomChapterPanel {
                         self.heart.Position = heartPos;
                         customHeartSprite = null;
                         customHeartID = null;
+                        drawnHeart = true;
                     } else {
                         self.heart.Position = new Vector2(9999, 9999);
                     }
+                    
+                    if (drawnHeart) {
+                        self.strawberriesOffset = new Vector2(120f, (self.deaths.Visible||true) ? -40f : 0.0f);
+                    } else {
+                        self.strawberriesOffset = new Vector2(0f, (self.deaths.Visible||true) ? -40f : 0.0f);
+                    }
+
+                    self.strawberries.Position = self.contentOffset + new Vector2(xOffs, 170f+40f) + self.strawberriesOffset;
+                    //self.deaths.Position = self.contentOffset + new Vector2(0.0f, 170f) + self.deathsOffset;
+                    self.deaths.Position = new Vector2(9999, 9999);
+                    
                     self.Components.Render();
                     break;
                 case ChapterMetadata.DisplayType.PREVIEW:
