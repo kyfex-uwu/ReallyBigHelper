@@ -62,13 +62,6 @@ public class ThemeData {
 public class ChapterMetadata {
     private static readonly double darkenFactor = 0.4;
 
-    private MTexture _icon;
-
-    private Color? _iconColor;
-
-    private MTexture _tab;
-
-    private Color? _tabColor;
 
     public List<ChapterMetadata> Chapters = new();
     private Final cleaned;
@@ -83,6 +76,7 @@ public class ChapterMetadata {
     public Dictionary<string, ThemeData> Theme;
     private Dictionary<string, ThemeData> parentTheme;
 
+    private Color? _tabColor;
     public string tabColor {
         set => this._tabColor = Calc.HexToColor(value);
         get => this._tabColor == null ? null : this._tabColor.Value.R.ToString("X2") +
@@ -91,6 +85,7 @@ public class ChapterMetadata {
                                                this._tabColor.Value.A.ToString("X2");
     }
 
+    private Color? _iconColor;
     public string iconColor {
         set => this._iconColor = Calc.HexToColor(value);
         get => this._iconColor == null ? null : this._iconColor.Value.R.ToString("X2") +
@@ -99,6 +94,7 @@ public class ChapterMetadata {
                                                 this._iconColor.Value.A.ToString("X2");
     }
 
+    private MTexture _icon;
     public string icon {
         set {
             this._icon = GFX.Gui["areaselect/ReallyBigHelper/icons/" + value];
@@ -106,6 +102,7 @@ public class ChapterMetadata {
         }
     }
 
+    private MTexture _tab;
     public string tab {
         set => this._tab = value==null?null:GFX.Gui["areaselect/ReallyBigHelper/tabs/" + value];
     }
@@ -117,7 +114,6 @@ public class ChapterMetadata {
     }
 
     private DisplayType _displayType = DisplayType.NONE;
-
     public string displayType {
         set {
             switch (value) {
@@ -131,6 +127,14 @@ public class ChapterMetadata {
                     this._displayType = DisplayType.NONE;
                     break;
             }
+        }
+    }
+    
+    private HashSet<string> _flags = new();
+
+    public string flags {
+        set {
+            this._flags = new HashSet<string>(value.Split(","));
         }
     }
 
@@ -225,10 +229,14 @@ public class ChapterMetadata {
 
         if (this.Chapters.Count > 0) this.id = -1;
 
+        Logger.Info("ReallyBigHelper", "cleaning chapters");
         foreach (var chapter in this.Chapters) chapter.Cleanup();
+        Logger.Info("ReallyBigHelper", this.text);
+        Logger.Info("ReallyBigHelper", this.Chapters.Count+"");
         this.cleaned = new Final(this._tabColor.Value, this._iconColor.Value,
             this._tab, this._icon,
             this.id, this.text, this._displayType,
+            this._flags,
             new List<Final>(this.Chapters.Select(metadata => metadata.cleaned)),
             this.Mountain, this.MHH_HeartID, this.MHH_HeartXMLPath);
         foreach (var chapter in this.Chapters) chapter.GiveParent(this.cleaned);
@@ -257,6 +265,8 @@ public class ChapterMetadata {
         public string text;
         public DisplayType displayType;
 
+        public HashSet<string> flags;
+
         public MapMetaMountain Mountain;
 
         public string MHH_HeartID;
@@ -278,6 +288,7 @@ public class ChapterMetadata {
         public Final(Color tabColor, Color iconColor,
             MTexture tab, MTexture icon,
             int id, string text, DisplayType displayType,
+            HashSet<string> flags,
             List<Final> chapters, MapMetaMountain mountain,
             string mhhId, string mhhPath) {
             this.tabColor = tabColor;
@@ -287,6 +298,7 @@ public class ChapterMetadata {
             this.id = Math.Max(id,-1);
             this.text = text;
             this.displayType = displayType;
+            this.flags = flags;
             this.Chapters = chapters;
             this.Mountain = mountain;
             this.MHH_HeartID = mhhId;

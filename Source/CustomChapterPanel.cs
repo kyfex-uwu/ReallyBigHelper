@@ -33,6 +33,8 @@ public class CustomChapterPanel {
         IL.Celeste.OuiChapterPanel.Render += renderMixin;
         On.Celeste.OuiChapterPanel.GetModeHeight += getHeightMixin;
         On.Celeste.OuiChapterPanel.Update += customHeartUpdate;
+        On.Celeste.OuiChapterPanel.StartRoutine += customStartRoutine;
+        On.Celeste.LevelEnter.Go += customLevelEnter;
 
         hookOrigUpdate = new ILHook(typeof(OuiChapterPanel).GetMethod("orig_Update", BindingFlags.Public|BindingFlags.Instance), 
             updateMixin);
@@ -46,11 +48,14 @@ public class CustomChapterPanel {
         IL.Celeste.OuiChapterPanel.Render -= renderMixin;
         On.Celeste.OuiChapterPanel.GetModeHeight -= getHeightMixin;
         On.Celeste.OuiChapterPanel.Update -= customHeartUpdate;
+        On.Celeste.OuiChapterPanel.StartRoutine -= customStartRoutine;
+        On.Celeste.LevelEnter.Go -= customLevelEnter;
 
         hookOrigUpdate?.Dispose();
     }
 
     private static bool canShow(AreaKey area, List<string> names, int index) {
+        Logger.Info("ReallyBigHelper", "canShow?");
         if (index == 0) return true;
         if (index < 0 || index >= names.Count) return false;
         return SaveData.Instance.Areas_Safe[area.ID]
@@ -288,7 +293,7 @@ public class CustomChapterPanel {
         foreach (var group in positions[self].Chapters) group.selected = false;
         positions[self] = next;
         positions[self].selected = true;
-        storedFakeSwap.Add(self);//to couteract the swapping back
+        storedFakeSwap.Add(self);//to counteract the swapping back
         self.Swap();
     }
 
@@ -542,6 +547,24 @@ public class CustomChapterPanel {
     private static void customHeartUpdate(On.Celeste.OuiChapterPanel.orig_Update orig, OuiChapterPanel self) {
         if (self.initialized && customHeartSprite!=null) customHeartSprite.Update();
         orig(self);
+    }
+
+    public static HashSet<string> FlagsToSet;
+    private static IEnumerator customStartRoutine(On.Celeste.OuiChapterPanel.orig_StartRoutine orig, OuiChapterPanel self, string checkpoint) {
+        if (positions.TryGetValue(self, out var position))
+            FlagsToSet = position.flags;
+            
+        yield return new SwapImmediately(orig(self, checkpoint));
+    }
+
+    private static void customLevelEnter(On.Celeste.LevelEnter.orig_Go orig, Session session, bool fromSaveData) {
+        if (FlagsToSet != null) {
+            foreach(var flag in FlagsToSet)
+                session.SetFlag(flag);
+            FlagsToSet = null;
+        }
+
+        orig(session, fromSaveData);
     }
 
     private static bool disableRender(bool orig, OuiChapterPanel self) {
