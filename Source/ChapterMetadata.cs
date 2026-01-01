@@ -130,13 +130,7 @@ public class ChapterMetadata {
         }
     }
     
-    private HashSet<string> _flags = new();
-
-    public string flags {
-        set {
-            this._flags = new HashSet<string>(value.Split(","));
-        }
-    }
+    private List<string> flags = new();
 
 #if DEBUG
     public override string ToString() {
@@ -236,7 +230,7 @@ public class ChapterMetadata {
         this.cleaned = new Final(this._tabColor.Value, this._iconColor.Value,
             this._tab, this._icon,
             this.id, this.text, this._displayType,
-            this._flags,
+            this.flags,
             new List<Final>(this.Chapters.Select(metadata => metadata.cleaned)),
             this.Mountain, this.MHH_HeartID, this.MHH_HeartXMLPath);
         foreach (var chapter in this.Chapters) chapter.GiveParent(this.cleaned);
@@ -265,7 +259,7 @@ public class ChapterMetadata {
         public string text;
         public DisplayType displayType;
 
-        public HashSet<string> flags;
+        public List<string> flags;
 
         public MapMetaMountain Mountain;
 
@@ -288,7 +282,7 @@ public class ChapterMetadata {
         public Final(Color tabColor, Color iconColor,
             MTexture tab, MTexture icon,
             int id, string text, DisplayType displayType,
-            HashSet<string> flags,
+            List<string> flags,
             List<Final> chapters, MapMetaMountain mountain,
             string mhhId, string mhhPath) {
             this.tabColor = tabColor;

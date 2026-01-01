@@ -549,7 +549,7 @@ public class CustomChapterPanel {
         orig(self);
     }
 
-    public static HashSet<string> FlagsToSet;
+    public static List<string> FlagsToSet;
     private static IEnumerator customStartRoutine(On.Celeste.OuiChapterPanel.orig_StartRoutine orig, OuiChapterPanel self, string checkpoint) {
         if (positions.TryGetValue(self, out var position))
             FlagsToSet = position.flags;
