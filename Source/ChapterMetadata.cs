@@ -130,7 +130,7 @@ public class ChapterMetadata {
         }
     }
     
-    private List<string> flags = new();
+    public List<string> flags = new();
 
 #if DEBUG
     public override string ToString() {

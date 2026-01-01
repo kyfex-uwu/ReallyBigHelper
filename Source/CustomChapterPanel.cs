@@ -549,20 +549,24 @@ public class CustomChapterPanel {
         orig(self);
     }
 
-    public static List<string> FlagsToSet;
+    public static ChapterMetadata.Final EnteringPosition;
     private static IEnumerator customStartRoutine(On.Celeste.OuiChapterPanel.orig_StartRoutine orig, OuiChapterPanel self, string checkpoint) {
-        if (positions.TryGetValue(self, out var position))
-            FlagsToSet = position.flags;
-            
+        if (positions.TryGetValue(self, out var position)) {
+            EnteringPosition = position.Chapters.Find(final => final.option.CheckpointLevelName == checkpoint);
+        } else {
+            EnteringPosition = null;
+        }
+
         yield return new SwapImmediately(orig(self, checkpoint));
     }
 
     private static void customLevelEnter(On.Celeste.LevelEnter.orig_Go orig, Session session, bool fromSaveData) {
-        if (FlagsToSet != null) {
-            foreach(var flag in FlagsToSet)
+        while (EnteringPosition != null) {
+            foreach(var flag in EnteringPosition.flags)
                 session.SetFlag(flag);
-            FlagsToSet = null;
+            EnteringPosition = EnteringPosition.parent;
         }
+        EnteringPosition = null;
 
         orig(session, fromSaveData);
     }
