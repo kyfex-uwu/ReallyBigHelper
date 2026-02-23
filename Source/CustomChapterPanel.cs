@@ -174,12 +174,14 @@ public class CustomChapterPanel {
         }
     }
 
-    private static bool[] getBerryList(OuiChapterPanel self, CustomChapterOption customOption) {
+    private static bool[] getBerryList(OuiChapterPanel self, CustomChapterOption customOption, out int trueBerryCount) {
         List<bool[]> flagArray = new();
         //Dictionary<int, bool[]> flagArray = new();
         var mode = (int) self.Area.Mode;
         var subchapterIds = customOption.position.childIds().FindAll(id => id>=0);
         
+        trueBerryCount = 0;
+        AreaModeStats stats = self.DisplayedStats.Modes[mode];
         for(int i=0;i<subchapterIds.Count;i++) {
             bool[] list = new bool[subchapterIds[i] != 0
                 ? self.Data.Mode[mode].Checkpoints[subchapterIds[i] - 1].Strawberries
@@ -187,15 +189,43 @@ public class CustomChapterPanel {
             flagArray.Add(list);
 
             for (int i2 = 0; i2 < list.Length;i2++) {
+                EntityData entityData = self.Data.Mode[mode].StrawberriesByCheckpoint[subchapterIds[i], i2]; // Changed from 0 to make the polaroid berries work correctly
                 foreach (EntityID strawberry in self.RealStats.Modes[mode].Strawberries) {
-                    EntityData entityData = self.Data.Mode[mode].StrawberriesByCheckpoint[subchapterIds[i], 0];
                     if (entityData != null && entityData.Level.Name == strawberry.Level &&
                         entityData.ID == strawberry.ID) {
                         list[i2] = true;
                     }
                 }
             }
-
+            
+            foreach (EntityID id in self.RealStats.Modes[mode].Strawberries) {
+                EntityData strawberry = self.Data.Mode[mode].MapData.Strawberries.Find(data => data.ID == id.ID);
+                // If it is a normal strawberry and has checkpointID assigned use the checkpointID
+                if(strawberry != null && strawberry.Int("checkpointID") == subchapterIds[i])
+                {
+                    trueBerryCount++;
+                    continue;
+                }
+                
+                // If not, find the first previous room that's a checkpoint and use that id.
+                if(strawberry == null || strawberry.Int("checkpointID") == -1)
+                {
+                    int levelI = self.Data.Mode[mode].MapData.Levels.FindIndex(data => data.Name == id.Level);
+                    while(levelI > 0)
+                    {
+                        LevelData data = self.Data.Mode[mode].MapData.Levels[levelI];
+                        if(data.HasCheckpoint)
+                        {
+                            if(self.Data.Mode[mode].Checkpoints[subchapterIds[i]].Level == data.Name)
+                            {
+                                trueBerryCount++;
+                            }
+                            break;
+                        }
+                        levelI--;
+                    }
+                }
+            }
         }
         var berryList = new bool[flagArray.Aggregate(0, (total, arr) => total + arr.Length)];
         var index = 0;
@@ -208,10 +238,10 @@ public class CustomChapterPanel {
     }
 
     private static bool[] updateBerryList(OuiChapterPanel self, CustomChapterOption customOption) {
-        var berryList = getBerryList(self, customOption);
+        var berryList = getBerryList(self, customOption, out int berryCount);
         
         if (!storedFakeSwap.Contains(self)) {
-            self.strawberries.Amount = berryList.Count(b => b);
+            self.strawberries.Amount = berryCount;
             self.strawberries.OutOf = berryList.Length;
         }
 
@@ -463,8 +493,8 @@ public class CustomChapterPanel {
                     
                     var realStrawbCount = self.strawberries.Amount;
                     var realStrawbOutOf = self.strawberries.OutOf;
-                    var berries = getBerryList(self, prevOption);
-                    self.strawberries.Amount = berries.Count(b => b);
+                    var berries = getBerryList(self, prevOption, out int berryCount);
+                    self.strawberries.Amount = berryCount;
                     self.strawberries.OutOf = berries.Length;
                     self.Components.Render();
                     self.strawberries.Amount = realStrawbCount;
