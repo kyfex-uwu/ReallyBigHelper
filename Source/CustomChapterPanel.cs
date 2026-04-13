@@ -65,6 +65,9 @@ public class CustomChapterPanel {
     private static float targetHeight;
     private static IEnumerator swapMixin(On.Celeste.OuiChapterPanel.orig_SwapRoutine orig, OuiChapterPanel self) {
         lastMovingFrom = CameFrom.VERT;
+        if (self.option < 0) self.option = 0;
+        else if (self.option >= self.options.Count) self.option = self.options.Count - 1;
+        
         if (!ReallyBigHelperModule.chapterData.ContainsKey(self.Area.SID)) {
             yield return new SwapImmediately(orig(self));
         } else {
@@ -151,6 +154,8 @@ public class CustomChapterPanel {
                         break;
                     }
                 }
+
+                if (self.option >= self.options.Count) self.option = self.options.Count - 1;//todo
 
                 for (var index = 0; index < self.checkpoints.Count - 1; ++index)
                     self.options[index].CheckpointSlideOut = 1f;
