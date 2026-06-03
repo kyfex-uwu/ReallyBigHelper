@@ -186,7 +186,6 @@ public class CustomChapterPanel {
         var subchapterIds = customOption.position.childIds().FindAll(id => id>=0);
         
         trueBerryCount = 0;
-        AreaModeStats stats = self.DisplayedStats.Modes[mode];
         for(int i=0;i<subchapterIds.Count;i++) {
             bool[] list = new bool[subchapterIds[i] != 0
                 ? self.Data.Mode[mode].Checkpoints[subchapterIds[i] - 1].Strawberries
@@ -440,6 +439,8 @@ public class CustomChapterPanel {
     private static string customHeartID;
     private static bool CustomRender(bool orig, OuiChapterPanel self) {
         if (self.options.Count == 0 || !(self.options[0] is CustomChapterOption)) {
+            self.strawberries.Amount = self.DisplayedStats.Modes[(int) self.Area.Mode].TotalStrawberries;
+            self.strawberries.OutOf = self.Data.Mode[(int) self.Area.Mode].TotalStrawberries;
             return orig;
         }
         
