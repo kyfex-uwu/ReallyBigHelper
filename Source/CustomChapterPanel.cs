@@ -587,8 +587,8 @@ public class CustomChapterPanel {
 
     public static ChapterMetadata.Final EnteringPosition;
     private static IEnumerator customStartRoutine(On.Celeste.OuiChapterPanel.orig_StartRoutine orig, OuiChapterPanel self, string checkpoint) {
-        if (positions.TryGetValue(self, out var position)) {
-            EnteringPosition = position.Chapters.Find(final => final.option.CheckpointLevelName == checkpoint);
+        if (positions.TryGetValue(self, out var position) && position.Chapters.Count>0) {
+            EnteringPosition = position.Chapters.Find(final => final.option != null && final.option.CheckpointLevelName == checkpoint);
         } else {
             EnteringPosition = null;
         }
