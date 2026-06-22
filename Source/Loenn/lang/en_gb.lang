@@ -1,0 +1,6 @@
+mods.ReallyBigHelper.name=ReallyBigHelper
+
+# Show/Hide Chapter Berries Trigger
+triggers.ReallyBigHelper/ShowHideChapterBerriesTrigger.placements.name.main=Show/Hide Chapter Berries Trigger
+triggers.ReallyBigHelper/ShowHideChapterBerriesTrigger.placements.description.main=Shows or hides berries in the pause menu screen
+triggers.ReallyBigHelper/ShowHideChapterBerriesTrigger.attributes.description.matcher=The regex to match flags against. (Visit regexr.com to build and test your regex)

@@ -96,6 +96,7 @@ public class ReallyBigHelperModule : EverestModule {
     private static void processMountainExtraData(ModAsset modAsset, string path) {
         modAsset.Type = typeof(AssetTypeYaml);
         if (modAsset.TryDeserialize(out Meow2 result)) {
+            if (result.Mountain == null) return;
             var areaModePath = path.Substring("Maps/".Length, path.Length - ".meta".Length - "Maps/".Length);
             var found = false;
             foreach (var area in AreaData.Areas) {
