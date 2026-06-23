@@ -1,0 +1,9 @@
+mods.ReallyBigHelper.name=ReallyBigHelper
+
+# Show/Hide Chapter Berries Trigger
+triggers.ReallyBigHelper/ShowHideChapterBerriesTrigger.placements.name.main=Show/Hide Chapter Berries Trigger
+triggers.ReallyBigHelper/ShowHideChapterBerriesTrigger.placements.description.main=Shows or hides berries in the pause menu screen
+triggers.ReallyBigHelper/ShowHideChapterBerriesTrigger.attributes.description.mode=How to modify the shown berries
+triggers.ReallyBigHelper/ShowHideChapterBerriesTrigger.attributes.description.list=The list of chapter ids to add/remove/set
+triggers.ReallyBigHelper/ShowHideChapterBerriesTrigger.attributes.description.onEnter=Whether to trigger on player enter, or on exit
+

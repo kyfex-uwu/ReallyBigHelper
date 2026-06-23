@@ -24,6 +24,7 @@ public class ReallyBigHelperModule : EverestModule {
         CustomChapterOption.Load();
         CustomChapterPanel.Load();
         MountainModelExtensions.Load();
+        ShowHideChapterBerriesTrigger.Load();
 
         On.Celeste.AreaData.Load += AreaDataOnLoad;
         Everest.Content.OnUpdate += onUpdate;
@@ -37,6 +38,7 @@ public class ReallyBigHelperModule : EverestModule {
         CustomChapterOption.Unload();
         CustomChapterPanel.Unload();
         MountainModelExtensions.Unload();
+        ShowHideChapterBerriesTrigger.Unload();
 
         On.Celeste.AreaData.Load -= AreaDataOnLoad;
         Everest.Content.OnUpdate -= onUpdate;
