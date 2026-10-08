@@ -12,13 +12,11 @@ public class MountainModelExtensions {
         mountainModelFarPlane = new ILHook(
             typeof(MountainModel).GetMethod("orig_BeforeRender", BindingFlags.Public | BindingFlags.Instance),
             setFarPlane);
-        IL.Celeste.MountainModel.BeforeRender += setFarPlane;
     }
 
     public static void Unload() {
         On.Celeste.Skybox.Draw -= skyboxScale;
         mountainModelFarPlane?.Dispose();
-        IL.Celeste.MountainModel.BeforeRender -= setFarPlane;
     }
 
     public static float globalSkyboxScale=-1;
