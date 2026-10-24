@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Celeste.Mod.Meta;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
@@ -24,6 +25,7 @@ public class CustomChapterPanel {
         BindingFlags.NonPublic | BindingFlags.Static);
     
     public static readonly string reallyBigSectionName = Random.Shared.Next() + "ReallyBigSection_";
+    private static MapMetaMountain currentMountain = null;
 
     public static void Load() {
         On.Celeste.OuiChapterPanel.SwapRoutine += swapMixin;
@@ -35,6 +37,7 @@ public class CustomChapterPanel {
         On.Celeste.OuiChapterPanel.Update += customHeartUpdate;
         On.Celeste.OuiChapterPanel.StartRoutine += customStartRoutine;
         On.Celeste.LevelEnter.Go += customLevelEnter;
+        IL.Celeste.Maddy3D.SetRunAnim += textureMixin;
 
         hookOrigUpdate = new ILHook(typeof(OuiChapterPanel).GetMethod("orig_Update", BindingFlags.Public|BindingFlags.Instance), 
             updateMixin);
@@ -50,6 +53,7 @@ public class CustomChapterPanel {
         On.Celeste.OuiChapterPanel.Update -= customHeartUpdate;
         On.Celeste.OuiChapterPanel.StartRoutine -= customStartRoutine;
         On.Celeste.LevelEnter.Go -= customLevelEnter;
+        IL.Celeste.Maddy3D.SetRunAnim -= textureMixin;
 
         hookOrigUpdate?.Dispose();
     }
@@ -383,11 +387,8 @@ public class CustomChapterPanel {
     }
     private static void updateMountain(OuiChapterPanel self) {
         if (positions.TryGetValue(self, out var position)) {
-            var selected = position.Chapters.Find(child => child.selected)?.option;
-            if (selected == null) {
-                if (storedFakeSwap.Contains(self)) return;
-                selected = self.options[self.option];
-            }
+            if (storedFakeSwap.Contains(self)) return;
+            var selected = self.options[self.option];
             
             var mountainData = (selected as CustomChapterOption)?.position?.GetMountain();
             if (mountainData != null) {
@@ -395,11 +396,21 @@ public class CustomChapterPanel {
                     self.EnteringChapter ? mountainData.Zoom.Convert() : mountainData.Select.Convert(),
                     null, true);
                 self.Overworld.Mountain.Model.EaseState(mountainData.State);
-                
-                self.Overworld.Maddy.Position = new Vector3(
-                    mountainData.Cursor.Length >= 1 ? mountainData.Cursor[0] : 0, 
-                    mountainData.Cursor.Length >= 2 ? mountainData.Cursor[1] : 0, 
-                    mountainData.Cursor.Length >= 3 ? mountainData.Cursor[2] : 0);
+
+                if (mountainData != currentMountain) {
+                    self.Overworld.Maddy.Hide();
+                    currentMountain = mountainData;
+                }else if(self.Overworld.Maddy.alpha == 0) {
+                    self.Overworld.Maddy.Position = new Vector3(
+                        mountainData.Cursor.Length >= 1 ? mountainData.Cursor[0] : 0, 
+                        mountainData.Cursor.Length >= 2 ? mountainData.Cursor[1] : 0, 
+                        mountainData.Cursor.Length >= 3 ? mountainData.Cursor[2] : 0);
+                    self.Overworld.Maddy.Running();
+                }
+            }
+            else {
+                currentMountain = null;
+                self.Overworld.Maddy.Hide();
             }
             
             //--
@@ -419,6 +430,20 @@ public class CustomChapterPanel {
             if(self.options[self.option] is CustomChapterOption customOption && customOption.position != null)
                 updateBerryList(self, self.options[self.option] as CustomChapterOption);
         }
+        else {
+            currentMountain = null;
+        }
+    }
+
+    private static void textureMixin(ILContext ctx) {
+        var cursor = new ILCursor(ctx);
+
+        cursor.GotoNext(MoveType.Before, instr => instr.MatchStloc0());
+        cursor.EmitDelegate(customMarkerTexture);
+    }
+
+    private static string customMarkerTexture(string dfault) {
+        return currentMountain?.MarkerTexture ?? dfault;
     }
 
     private static void renderMixin(ILContext ctx) {

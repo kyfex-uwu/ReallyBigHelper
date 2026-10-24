@@ -14,7 +14,7 @@ public class ReallyBigHelperModule : EverestModule {
         Logger.SetLogLevel("ReallyBigHelper", LogLevel.Verbose);
 #else
         // release builds use info logging to reduce spam in log files
-        Logger.SetLogLevel("ReallyBigHelper", LogLevel.Info);
+        Logger.SetLogLevel("ReallyBigHelper", LogLevel.Error);
 #endif
     }
 
