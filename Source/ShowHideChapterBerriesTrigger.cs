@@ -147,7 +147,7 @@ public class ShowHideChapterBerriesTrigger : Trigger {
         foreach (var checkpoint in controller.checkpoints)
             if (checkpoint < modeProperties.Checkpoints.Length) {
                 checkpoints++;
-                totalStrawberries += modeProperties.Checkpoints[checkpoint].Strawberries;
+                totalStrawberries += checkpoint == 0 ? modeProperties.StartStrawberries : modeProperties.Checkpoints[checkpoint-1].Strawberries;
             }
         if(!controller.whitelist) {
             checkpoints = modeProperties.Checkpoints.Length-checkpoints;
