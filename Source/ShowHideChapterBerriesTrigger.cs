@@ -140,6 +140,7 @@ public class ShowHideChapterBerriesTrigger : Trigger {
         if (!mode.Completed && !SaveData.Instance.CheatMode && !SaveData.Instance.DebugMode)
             return;
         ModeProperties modeProperties = AreaData.Get(area).Mode[(int) area.Mode];
+        if (modeProperties.Checkpoints == null) return;
         
         var controller = getController(self.SceneAs<Level>());
         var checkpoints = 0;
