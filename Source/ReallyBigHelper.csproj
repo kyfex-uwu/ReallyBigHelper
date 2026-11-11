@@ -32,6 +32,10 @@
         <Reference Include="CelesteNet.Client">
             <HintPath>..\deps\MultiheartHelper.dll</HintPath>
         </Reference>
+        <Reference Include="CelesteNet.Client">
+            <HintPath>..\deps\PlatinumStrawberry.dll</HintPath>
+        </Reference>
+        
     </ItemGroup>
 
     <Target Name="CopyFiles" AfterTargets="Build" Inputs="$(OutputPath)\$(AssemblyName).dll;$(OutputPath)\$(AssemblyName).pdb" Outputs="..\bin\$(AssemblyName).dll;..\bin\$(AssemblyName).pdb">

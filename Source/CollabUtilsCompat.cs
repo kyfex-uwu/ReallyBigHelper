@@ -1,5 +1,5 @@
 using System.Reflection;
-using System.Reflection.Emit;
+using Celeste.Mod.CollabUtils2.Entities;
 using Monocle;
 using MonoMod.Cil;
 using MonoMod.RuntimeDetour;
@@ -41,5 +41,10 @@ public class CollabUtilsCompat {
         }
 
         return false;
+    }
+
+    public static ReallyBigHelperSaveData.SpecialBerryType? getBerryType(Strawberry berry) {
+        if (berry is SilverBerry) return ReallyBigHelperSaveData.SpecialBerryType.SILVER;
+        return null;
     }
 }

@@ -1,10 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using Celeste.Mod.Meta;
+using MonoMod.RuntimeDetour;
 
 namespace Celeste.Mod.ReallyBigHelper;
 
 public class ReallyBigHelperModule : EverestModule {
+
+    public override Type SaveDataType => typeof(ReallyBigHelperSaveData);
+    public static ReallyBigHelperSaveData SaveData => (ReallyBigHelperSaveData)Instance._SaveData;
+    public override Type SessionType => typeof(ReallyBigHelperSession);
+    public static ReallyBigHelperSession Session => (ReallyBigHelperSession)Instance._Session;
+    
     public static Dictionary<string, ChapterMetadata.Final[]> chapterData = new();
 
     public ReallyBigHelperModule() {
@@ -19,7 +27,8 @@ public class ReallyBigHelperModule : EverestModule {
     }
 
     public static ReallyBigHelperModule Instance { get; private set; }
-    
+
+    private static List<Hook> hooks = new();
     public override void Load() {
         CustomChapterOption.Load();
         CustomChapterPanel.Load();
@@ -30,9 +39,15 @@ public class ReallyBigHelperModule : EverestModule {
         On.Celeste.AreaData.Load += AreaDataOnLoad;
         Everest.Content.OnUpdate += onUpdate;
         On.Celeste.OuiChapterSelect.Update += onChapterSelect;
+        Everest.Events.Player.OnDie += onDie;
+        On.Celeste.Checkpoint.TurnOn += newCheckpoint;
+        hooks.Add(new Hook(
+            typeof(Strawberry).GetMethod("orig_OnCollect", BindingFlags.Public | BindingFlags.Instance),
+            collectGolden));
         
         if(hasCollabUtils2) CollabUtilsCompat.Load();
         if (hasMultiheart) MHHFeatures.Load();
+        if(hasPlatinum) PlatinumCompat.Load();
     }
 
     public override void Unload() {
@@ -45,9 +60,14 @@ public class ReallyBigHelperModule : EverestModule {
         On.Celeste.AreaData.Load -= AreaDataOnLoad;
         Everest.Content.OnUpdate -= onUpdate;
         On.Celeste.OuiChapterSelect.Update -= onChapterSelect;
+        Everest.Events.Player.OnDie -= onDie;
+        On.Celeste.Checkpoint.TurnOn -= newCheckpoint;
+        
+        foreach(var hook in hooks) hook.Dispose();
         
         if(hasCollabUtils2) CollabUtilsCompat.Unload();
         if (hasMultiheart) MHHFeatures.Unload();
+        if(hasPlatinum) PlatinumCompat.Unload();
     }
 
     private static void AreaDataOnLoad(On.Celeste.AreaData.orig_Load orig) {
@@ -131,11 +151,36 @@ public class ReallyBigHelperModule : EverestModule {
 
     private static void onChapterSelect(On.Celeste.OuiChapterSelect.orig_Update orig, OuiChapterSelect self) {
         orig(self);
-        if (mountainExtData.TryGetValue(SaveData.Instance?.LastArea_Safe.ID ?? -1, out var data) && data!=null) {
+        if (mountainExtData.TryGetValue(global::Celeste.SaveData.Instance?.LastArea_Safe.ID ?? -1, out var data) && data!=null) {
             MountainModelExtensions.globalSkyboxScale = data.ReallyBigHelper_SkyboxScale;
         }else {
             MountainModelExtensions.globalSkyboxScale = -1;
 
+        }
+    }
+
+    private static void onDie(Player self) {
+        SaveData.getAreaData(self.SceneAs<Level>().Session.Area.SID).addDeath(Session.currentCheckpoint);
+    }
+
+    private static void newCheckpoint(On.Celeste.Checkpoint.orig_TurnOn orig, Checkpoint self, bool animate) {
+        orig(self, animate);
+        var session = self.SceneAs<Level>().Session;
+        var checkpoints = AreaData.Get(session.Area).Mode[(int)session.Area.Mode].Checkpoints;
+        for(var i=0;i<checkpoints.Length;i++){
+            if (checkpoints[i].Level == session.Level) {
+                Session.currentCheckpoint = i;
+                break;
+            }
+        }
+    }
+
+    private static void collectGolden(Action<Strawberry> orig, Strawberry self) {
+        orig(self);
+        if (self.Golden) {
+            SaveData.getAreaData(self.SceneAs<Level>().Session.Area.SID).addBerry(
+                (hasCollabUtils2 ? CollabUtilsCompat.getBerryType(self) : null) ??
+                ReallyBigHelperSaveData.SpecialBerryType.GOLD, Session.currentCheckpoint);
         }
     }
 
@@ -147,6 +192,17 @@ public class ReallyBigHelperModule : EverestModule {
     public static bool hasMultiheart{
         get{ return Everest.Loader.DependencyLoaded(multiheartDependency); }
     }
+    private static EverestModuleMetadata platinumDependency = new EverestModuleMetadata { Name = "PlatinumStrawberry", Version = new Version(1,1,1,0)};
+    public static bool hasPlatinum{
+        get{ return Everest.Loader.DependencyLoaded(platinumDependency); }
+    }
 
-    public static bool hasMultiHeartCached = false;
+    private static bool? _hasMultiHeartCached = null;
+
+    public static bool hasMultiHeartCached {
+        get{
+            if (_hasMultiHeartCached == null) _hasMultiHeartCached = hasMultiheart;
+            return _hasMultiHeartCached ?? false;
+        }
+    }
 }
