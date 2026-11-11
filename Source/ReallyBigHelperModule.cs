@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 using Celeste.Mod.Meta;
+using Monocle;
 using MonoMod.RuntimeDetour;
 
 namespace Celeste.Mod.ReallyBigHelper;
@@ -40,7 +41,7 @@ public class ReallyBigHelperModule : EverestModule {
         Everest.Content.OnUpdate += onUpdate;
         On.Celeste.OuiChapterSelect.Update += onChapterSelect;
         Everest.Events.Player.OnDie += onDie;
-        On.Celeste.Checkpoint.TurnOn += newCheckpoint;
+        On.Celeste.Checkpoint.Added += newCheckpoint;
         hooks.Add(new Hook(
             typeof(Strawberry).GetMethod("orig_OnCollect", BindingFlags.Public | BindingFlags.Instance),
             collectGolden));
@@ -61,7 +62,7 @@ public class ReallyBigHelperModule : EverestModule {
         Everest.Content.OnUpdate -= onUpdate;
         On.Celeste.OuiChapterSelect.Update -= onChapterSelect;
         Everest.Events.Player.OnDie -= onDie;
-        On.Celeste.Checkpoint.TurnOn -= newCheckpoint;
+        On.Celeste.Checkpoint.Added -= newCheckpoint;
         
         foreach(var hook in hooks) hook.Dispose();
         
@@ -163,13 +164,13 @@ public class ReallyBigHelperModule : EverestModule {
         SaveData.getAreaData(self.SceneAs<Level>().Session.Area.SID).addDeath(Session.currentCheckpoint);
     }
 
-    private static void newCheckpoint(On.Celeste.Checkpoint.orig_TurnOn orig, Checkpoint self, bool animate) {
-        orig(self, animate);
+    private static void newCheckpoint(On.Celeste.Checkpoint.orig_Added orig, Checkpoint self, Scene scene) {
+        orig(self, scene);
         var session = self.SceneAs<Level>().Session;
         var checkpoints = AreaData.Get(session.Area).Mode[(int)session.Area.Mode].Checkpoints;
         for(var i=0;i<checkpoints.Length;i++){
             if (checkpoints[i].Level == session.Level) {
-                Session.currentCheckpoint = i;
+                Session.currentCheckpoint = i+1;
                 break;
             }
         }

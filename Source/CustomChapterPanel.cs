@@ -201,39 +201,41 @@ public class CustomChapterPanel {
                 foreach (EntityID strawberry in self.RealStats.Modes[mode].Strawberries) {
                     if (entityData != null && entityData.Level.Name == strawberry.Level &&
                         entityData.ID == strawberry.ID) {
+                        trueBerryCount++;
                         list[i2] = true;
                     }
                 }
             }
             
-            foreach (EntityID id in self.RealStats.Modes[mode].Strawberries) {
-                EntityData strawberry = self.Data.Mode[mode].MapData.Strawberries.Find(data => data.ID == id.ID);
-                // If it is a normal strawberry and has checkpointID assigned use the checkpointID
-                if(strawberry != null && strawberry.Int("checkpointID") == subchapterIds[i])
-                {
-                    trueBerryCount++;
-                    continue;
-                }
-                
-                // If not, find the first previous room that's a checkpoint and use that id.
-                if(strawberry == null || strawberry.Int("checkpointID") == -1)
-                {
-                    int levelI = self.Data.Mode[mode].MapData.Levels.FindIndex(data => data.Name == id.Level);
-                    while(levelI > 0)
-                    {
-                        LevelData data = self.Data.Mode[mode].MapData.Levels[levelI];
-                        if(data.HasCheckpoint)
-                        {
-                            if(self.Data.Mode[mode].Checkpoints[subchapterIds[i]].Level == data.Name)
-                            {
-                                trueBerryCount++;
-                            }
-                            break;
-                        }
-                        levelI--;
-                    }
-                }
-            }
+            //levels dont have an order we can rely on unfortunately
+            // foreach (EntityID id in self.RealStats.Modes[mode].Strawberries) {
+            //     EntityData strawberry = self.Data.Mode[mode].MapData.Strawberries.Find(data => data.ID == id.ID);
+            //     // If it is a normal strawberry and has checkpointID assigned use the checkpointID
+            //     if(strawberry != null && strawberry.Int("checkpointID") == subchapterIds[i]-1)
+            //     {
+            //         trueBerryCount++;
+            //         continue;
+            //     }
+            //     
+            //     // If not, find the first previous room that's a checkpoint and use that id.
+            //     if(strawberry == null || strawberry.Int("checkpointID") == -1)
+            //     {
+            //         int levelI = self.Data.Mode[mode].MapData.Levels.FindIndex(data => data.Name == id.Level);
+            //         while(levelI > 0)
+            //         {
+            //             LevelData data = self.Data.Mode[mode].MapData.Levels[levelI];
+            //             if(data.HasCheckpoint)
+            //             {
+            //                 if(self.Data.Mode[mode].Checkpoints[subchapterIds[i]].Level == data.Name)
+            //                 {
+            //                     trueBerryCount++;
+            //                 }
+            //                 break;
+            //             }
+            //             levelI--;
+            //         }
+            //     }
+            // }
         }
         var berryList = new bool[flagArray.Aggregate(0, (total, arr) => total + arr.Length)];
         var index = 0;
@@ -332,6 +334,7 @@ public class CustomChapterPanel {
         positions[self] = next;
         positions[self].selected = true;
         storedFakeSwap.Add(self);//to counteract the swapping back
+        Audio.Play("event:/ui/world_map/chapter/level_select");
         self.Swap();
     }
 
@@ -481,13 +484,13 @@ public class CustomChapterPanel {
             var renderPrevPolaroid = false;
             switch (prevOption?.position.displayType) {
                 case ChapterMetadata.DisplayType.INFO:
-                    var xOffs = 800 * Ease.CubeIn(Math.Clamp(1-position.transitionAmt, 0, 0.25f)*4);
-                    if (lastMovingFrom == CameFrom.VERT) xOffs = position.transitionAmt>0.92?0:800;
-                    
+                    var xOffs = 800 * Ease.CubeIn(Math.Clamp(1 - position.transitionAmt, 0, 0.25f) * 4);
+                    if (lastMovingFrom == CameFrom.VERT) xOffs = position.transitionAmt > 0.92 ? 0 : 800;
+
                     var customHeart = false;
                     var drawnHeart = false;
                     var heartPos = self.contentOffset + new Vector2(xOffs, 170f) + self.heartOffset;
-                    if (ReallyBigHelperModule.hasMultiHeartCached && 
+                    if (ReallyBigHelperModule.hasMultiHeartCached &&
                         prevOption.position.MHH_HeartDisplayPath != null) {
                         customHeart = true;
                         if (MHHFeatures.heartIsCollected(AreaData.Get(self.Area), prevOption.position.MHH_HeartID)) {
@@ -508,28 +511,37 @@ public class CustomChapterPanel {
                         customHeartSprite = null;
                         customHeartID = null;
                         drawnHeart = true;
-                    } else {
+                    }else {
                         self.heart.Position = new Vector2(9999, 9999);
                     }
 
                     if (drawnHeart) {
-                        self.strawberriesOffset = new Vector2(120f, (self.deaths.Visible||true) ? -40f : 0.0f);
-                    } else {
-                        self.strawberriesOffset = new Vector2(0f, (self.deaths.Visible||true) ? -40f : 0.0f);
+                        self.strawberriesOffset = new Vector2(120f, self.deaths.Visible ? -40f : 0.0f);
+                        self.deathsOffset = new Vector2(120f, 40.0f);
+                    }else {
+                        self.strawberriesOffset = new Vector2(0f, self.deaths.Visible ? -40f : 0.0f);
+                        self.deathsOffset = new Vector2(0f, 40.0f);
                     }
 
-                    self.strawberries.Position = self.contentOffset + new Vector2(xOffs, 170f+40f) + self.strawberriesOffset;
-                    //self.deaths.Position = self.contentOffset + new Vector2(0.0f, 170f) + self.deathsOffset;
-                    self.deaths.Position = new Vector2(9999, 9999);
-                    
+                    self.strawberries.Position =
+                        self.contentOffset + new Vector2(xOffs, 170f) + self.strawberriesOffset;
+                    self.deaths.Position = self.contentOffset + new Vector2(xOffs, 170f) + self.deathsOffset;
+
                     var realStrawbCount = self.strawberries.Amount;
                     var realStrawbOutOf = self.strawberries.OutOf;
+                    var realDeathCount = self.deaths.Amount;
+
                     var berries = getBerryList(self, prevOption, out int berryCount);
                     self.strawberries.Amount = berryCount;
                     self.strawberries.OutOf = berries.Length;
+                    self.deaths.Amount = ReallyBigHelperModule.SaveData.getAreaData(self.Area.SID)
+                        .getDeaths(prevOption.position.childIds().FindAll(id => id>=0));
                     self.Components.Render();
+
                     self.strawberries.Amount = realStrawbCount;
                     self.strawberries.OutOf = realStrawbOutOf;
+                    self.deaths.Amount = realDeathCount;
+
                     break;
                 case ChapterMetadata.DisplayType.PREVIEW:
                     renderPrevPolaroid = true;
@@ -571,16 +583,22 @@ public class CustomChapterPanel {
                     }
                     
                     if (drawnHeart) {
-                        self.strawberriesOffset = new Vector2(120f, (self.deaths.Visible||true) ? -40f : 0.0f);
+                        self.strawberriesOffset = new Vector2(120f, self.deaths.Visible ? -40f : 0.0f);
+                        self.deathsOffset = new Vector2(120f, 40.0f);
                     } else {
-                        self.strawberriesOffset = new Vector2(0f, (self.deaths.Visible||true) ? -40f : 0.0f);
+                        self.strawberriesOffset = new Vector2(0f, self.deaths.Visible ? -40f : 0.0f);
+                        self.deathsOffset = new Vector2(0f, 40.0f);
                     }
 
-                    self.strawberries.Position = self.contentOffset + new Vector2(xOffs, 170f+40f) + self.strawberriesOffset;
-                    //self.deaths.Position = self.contentOffset + new Vector2(0.0f, 170f) + self.deathsOffset;
-                    self.deaths.Position = new Vector2(9999, 9999);
-                    
+                    self.strawberries.Position = self.contentOffset + new Vector2(xOffs, 170f) + self.strawberriesOffset;
+                    self.deaths.Position = self.contentOffset + new Vector2(xOffs, 170f) + self.deathsOffset;
+
+                    var realDeathCount = self.deaths.Amount;
+                    self.deaths.Amount = ReallyBigHelperModule.SaveData.getAreaData(self.Area.SID)
+                        .getDeaths(selectedOption.position.childIds().FindAll(id => id>=0));
                     self.Components.Render();
+                    self.deaths.Amount = realDeathCount;
+                    
                     break;
                 case ChapterMetadata.DisplayType.PREVIEW:
                     selectedOption.shouldDrawPreview = true;

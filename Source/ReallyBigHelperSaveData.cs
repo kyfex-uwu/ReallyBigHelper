@@ -28,7 +28,7 @@ public class ReallyBigHelperSaveData : EverestModuleSaveData{
 			foreach(var checkpoint in checkpoints)
 				if (deaths.TryGetValue(checkpoint, out var count))
 					toReturn += count;
-
+			
 			return toReturn;
 
 		}
