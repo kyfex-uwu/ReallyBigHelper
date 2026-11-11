@@ -487,7 +487,7 @@ public class CustomChapterPanel {
                     var customHeart = false;
                     var drawnHeart = false;
                     var heartPos = self.contentOffset + new Vector2(xOffs, 170f) + self.heartOffset;
-                    if (ReallyBigHelperModule.hasMultiheart && 
+                    if (ReallyBigHelperModule.hasMultiHeartCached && 
                         prevOption.position.MHH_HeartDisplayPath != null) {
                         customHeart = true;
                         if (MHHFeatures.heartIsCollected(AreaData.Get(self.Area), prevOption.position.MHH_HeartID)) {
@@ -544,7 +544,7 @@ public class CustomChapterPanel {
                     
                     var customHeart = false;
                     var drawnHeart = false;
-                    if (ReallyBigHelperModule.hasMultiheart && 
+                    if (ReallyBigHelperModule.hasMultiHeartCached && 
                         selectedOption.position.displayType == ChapterMetadata.DisplayType.INFO &&
                         selectedOption.position.MHH_HeartDisplayPath != null) {
                         customHeart = true;

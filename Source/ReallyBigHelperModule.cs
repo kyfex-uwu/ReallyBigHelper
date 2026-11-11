@@ -21,8 +21,6 @@ public class ReallyBigHelperModule : EverestModule {
     public static ReallyBigHelperModule Instance { get; private set; }
     
     public override void Load() {
-        hasCollabUtils2 = Everest.Loader.DependencyLoaded(collabUtils2Dependency);
-        hasMultiheart = Everest.Loader.DependencyLoaded(multiheartDependency);
         CustomChapterOption.Load();
         CustomChapterPanel.Load();
         MountainModelExtensions.Load();
@@ -142,7 +140,13 @@ public class ReallyBigHelperModule : EverestModule {
     }
 
     private static EverestModuleMetadata collabUtils2Dependency = new EverestModuleMetadata { Name = "CollabUtils2" };
-    public static bool hasCollabUtils2=false;
+    public static bool hasCollabUtils2 {
+        get{ return Everest.Loader.DependencyLoaded(collabUtils2Dependency); }
+    }
     private static EverestModuleMetadata multiheartDependency = new EverestModuleMetadata { Name = "MultiheartHelper", Version = new Version(0,1, 4)};
-    public static bool hasMultiheart=false;
+    public static bool hasMultiheart{
+        get{ return Everest.Loader.DependencyLoaded(multiheartDependency); }
+    }
+
+    public static bool hasMultiHeartCached = false;
 }

@@ -4,7 +4,7 @@ namespace Celeste.Mod.ReallyBigHelper;
 
 public class MHHFeatures {
     public static void Load() {
-        
+        ReallyBigHelperModule.hasMultiHeartCached = true;
     }
     public static void Unload() {
         
