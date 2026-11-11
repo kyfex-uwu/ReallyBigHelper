@@ -162,7 +162,7 @@ public class ShowHideChapterBerriesTrigger : Trigger {
         
         orig = new Vector2(
             (1920 - (totalStrawberries - 1) * 32 - 
-                (totalStrawberries <= 0 || checkpoints == 0 ? 0 : checkpoints * 32)) / 2,
+                (totalStrawberries <= 0 || checkpoints == 0 ? 0 : (checkpoints - 1) * 32)) / 2,
             (float)(1016.0 + (1.0 - easeAmt) * 80.0));
     }
 
