@@ -138,11 +138,17 @@ public class ReallyBigHelperModule : EverestModule {
 
         }
     }
-    
+
+    public override void Initialize() {
+        base.Initialize();
+        hasCollabUtils2 = Everest.Loader.DependencyLoaded(collabUtils2Dependency);
+        hasMultiheart = Everest.Loader.DependencyLoaded(multiheartDependency);
+    }
+
     //--
     
     private static EverestModuleMetadata collabUtils2Dependency = new EverestModuleMetadata { Name = "CollabUtils2" };
-    public static readonly bool hasCollabUtils2 = Everest.Loader.DependencyLoaded(collabUtils2Dependency);
-    private static EverestModuleMetadata multiheartDependency = new EverestModuleMetadata { Name = "MultiheartHelper", Version = new Version(0,1,0)};
-    public static readonly bool hasMultiheart = Everest.Loader.DependencyLoaded(multiheartDependency);
+    public static bool hasCollabUtils2;
+    private static EverestModuleMetadata multiheartDependency = new EverestModuleMetadata { Name = "MultiheartHelper", Version = new Version(0,1, 4)};
+    public static bool hasMultiheart;
 }

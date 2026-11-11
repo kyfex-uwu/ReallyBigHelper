@@ -60,7 +60,6 @@ public class CustomChapterPanel {
     }
 
     private static bool canShow(AreaKey area, List<string> names, int index) {
-        Logger.Info("ReallyBigHelper", "canShow?");
         if (index == 0) return true;
         if (index < 0 || index >= names.Count) return false;
         return SaveData.Instance.Areas_Safe[area.ID]

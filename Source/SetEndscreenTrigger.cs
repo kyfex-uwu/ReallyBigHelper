@@ -20,7 +20,6 @@ public class SetEndscreenTrigger : Trigger {
     private static void setCustomEndScreen(Level level, string name) {
         var data = DynamicData.For(level.Session);
         data.Set(customEndscreenName, name);
-        Logger.Info("ReallyBigHelper", "bro");
     }
     
     public override void OnEnter(Player player) {
@@ -35,18 +34,11 @@ public class SetEndscreenTrigger : Trigger {
     public static void Load() {
         IL.Celeste.LevelExit.playCustomCompleteScreenMusic += customMusic;
         IL.Celeste.LevelExit.LoadCompleteThread += customMetaInject;
-        On.Celeste.LevelExit.LoadCompleteThread += testLog;
     }
 
     public static void Unload() {
         IL.Celeste.LevelExit.playCustomCompleteScreenMusic -= customMusic;
         IL.Celeste.LevelExit.LoadCompleteThread -= customMetaInject;
-        On.Celeste.LevelExit.LoadCompleteThread -= testLog;
-    }
-
-    private static void testLog(On.Celeste.LevelExit.orig_LoadCompleteThread orig, LevelExit self) {
-        orig(self);
-        Logger.Info("ReallyBigHelper", self.completeAtlas.DataPath);
     }
 
     private static void customMusic(ILContext ctx) {
@@ -60,22 +52,17 @@ public class SetEndscreenTrigger : Trigger {
     }
 
     private static MapMetaCompleteScreen getCompleteScreen(LevelExit self) {
-        Logger.Info("ReallyBigHelper", "custom complete screen?");
         var customEndScreen = DynamicData.For(self.session).Get(customEndscreenName) as string;
         if (!ReallyBigHelperModule.chapterData.TryGetValue(self.session.Area.SID, out var meta) ||
             (int) self.session.Area.Mode >= meta.Length || customEndScreen == null) return null;
 
-        Logger.Info("ReallyBigHelper", meta[(int)self.session.Area.Mode].GetCompleteScreen(customEndScreen)
-            .Title.ASide);
         return meta[(int)self.session.Area.Mode].GetCompleteScreen(customEndScreen);
     }
 
     private static string[] getCustomMusicMaybe(string[] orig, LevelExit self) {
-        Logger.Info("ReallyBigHelper", "custom music perhaps");
         var completeScreen = getCompleteScreen(self);
         if (completeScreen == null) return orig;
         
-        Logger.Info("ReallyBigHelper", "custom music perhaps!!!!!!!!!!!!!!");
         return completeScreen.MusicBySide ?? orig;
     }
 

@@ -227,8 +227,6 @@ public class ChapterMetadata {
 
         Logger.Info("ReallyBigHelper", "cleaning chapters");
         foreach (var chapter in this.Chapters) chapter.Cleanup();
-        Logger.Info("ReallyBigHelper", this.text);
-        Logger.Info("ReallyBigHelper", this.Chapters.Count+"");
         this.cleaned = new Final(this._tabColor.Value, this._iconColor.Value,
             this._tab, this._icon,
             this.id, this.text, this._displayType,
