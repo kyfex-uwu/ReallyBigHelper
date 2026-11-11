@@ -145,11 +145,15 @@ public class ShowHideChapterBerriesTrigger : Trigger {
         var controller = getController(self.SceneAs<Level>());
         var checkpoints = 0;
         int totalStrawberries = 0;
-        foreach (var checkpoint in controller.checkpoints)
+        foreach (var checkpoint in controller.checkpoints) {
+            if (checkpoint < 0) continue;
             if (checkpoint < modeProperties.Checkpoints.Length) {
                 checkpoints++;
-                totalStrawberries += checkpoint == 0 ? modeProperties.StartStrawberries : modeProperties.Checkpoints[checkpoint-1].Strawberries;
+                totalStrawberries += checkpoint == 0
+                    ? modeProperties.StartStrawberries
+                    : modeProperties.Checkpoints[checkpoint - 1].Strawberries;
             }
+        }
         if(!controller.whitelist) {
             checkpoints = modeProperties.Checkpoints.Length-checkpoints;
             totalStrawberries = modeProperties.TotalStrawberries-totalStrawberries;

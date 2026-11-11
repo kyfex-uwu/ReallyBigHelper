@@ -7,3 +7,10 @@ triggers.ReallyBigHelper/ShowHideChapterBerriesTrigger.attributes.description.mo
 triggers.ReallyBigHelper/ShowHideChapterBerriesTrigger.attributes.description.list=The list of chapter ids to add/remove/set
 triggers.ReallyBigHelper/ShowHideChapterBerriesTrigger.attributes.description.onEnter=Whether to trigger on player enter, or on exit
 
+# Set Endscreen Trigger
+triggers.ReallyBigHelper/SetEndScreenTrigger.placements.name.main=Set Custom Endscreen Trigger
+triggers.ReallyBigHelper/SetEndScreenTrigger.placements.name.clear=Clear Custom Endscreen Trigger
+triggers.ReallyBigHelper/SetEndScreenTrigger.placements.description.name=The name of the endscreen (should be in your .reallybig.meta, in the EndScreens section)
+triggers.ReallyBigHelper/SetEndScreenTrigger.placements.description.clear=Whether to clear the custom end screen (set it back to the default end screen)
+triggers.ReallyBigHelper/SetEndScreenTrigger.attributes.description.onEnter=Whether to trigger on player enter, or on exit
+

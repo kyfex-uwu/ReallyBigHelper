@@ -10,6 +10,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using MonoMod.Cil;
 using MonoMod.RuntimeDetour;
+using MonoMod.Utils;
 
 namespace Celeste.Mod.ReallyBigHelper;
 
@@ -641,7 +642,7 @@ public class CustomChapterPanel {
     }
 
     private static int getHeightMixin(On.Celeste.OuiChapterPanel.orig_GetModeHeight orig, OuiChapterPanel self) {
-        if (positions.TryGetValue(self, out var position)) {
+        if (positions.ContainsKey(self)) {
             if (self.option >= 0 && self.option < self.options.Count) {
                 switch ((self.options[self.option] as CustomChapterOption)?.position.displayType) {
                     case ChapterMetadata.DisplayType.INFO: return 540;
@@ -655,5 +656,4 @@ public class CustomChapterPanel {
 
         return orig(self);
     }
-
 }

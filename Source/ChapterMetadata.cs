@@ -76,6 +76,8 @@ public class ChapterMetadata {
     public Dictionary<string, ThemeData> Theme;
     private Dictionary<string, ThemeData> parentTheme;
 
+    public Dictionary<string, MapMetaCompleteScreen> EndScreens;
+
     private Color? _tabColor;
     public string tabColor {
         set => this._tabColor = Calc.HexToColor(value);
@@ -232,7 +234,8 @@ public class ChapterMetadata {
             this.id, this.text, this._displayType,
             this.flags,
             new List<Final>(this.Chapters.Select(metadata => metadata.cleaned)),
-            this.Mountain, this.MHH_HeartID, this.MHH_HeartXMLPath);
+            this.Mountain, this.MHH_HeartID, this.MHH_HeartXMLPath,
+            this.EndScreens);
         foreach (var chapter in this.Chapters) chapter.GiveParent(this.cleaned);
 
         return this.cleaned;
@@ -266,6 +269,8 @@ public class ChapterMetadata {
         public string MHH_HeartID;
         public string MHH_HeartDisplayPath;
         
+        public Dictionary<string, MapMetaCompleteScreen> endScreens;
+        
         public Final parent;
         public bool selected = false;
         public float transitionAmt = 0;
@@ -279,12 +284,23 @@ public class ChapterMetadata {
             return this.Mountain;
         }
 
+        public MapMetaCompleteScreen GetCompleteScreen(string name) {
+            if (this.endScreens == null) {
+                if (this.parent == null) return null;
+                return this.parent.GetCompleteScreen(name);
+            }
+
+            return this.endScreens.TryGetValue(name, out var screen) ? screen : this.parent.GetCompleteScreen(name);
+        }
+
+
         public Final(Color tabColor, Color iconColor,
             MTexture tab, MTexture icon,
             int id, string text, DisplayType displayType,
             List<string> flags,
             List<Final> chapters, MapMetaMountain mountain,
-            string mhhId, string mhhPath) {
+            string mhhId, string mhhPath,
+            Dictionary<string, MapMetaCompleteScreen> endScreens) {
             this.tabColor = tabColor;
             this.iconColor = iconColor;
             this.tab = tab;
@@ -297,6 +313,7 @@ public class ChapterMetadata {
             this.Mountain = mountain;
             this.MHH_HeartID = mhhId;
             this.MHH_HeartDisplayPath = mhhPath;
+            this.endScreens = endScreens;
         }
 
         public OuiChapterPanel.Option option;
