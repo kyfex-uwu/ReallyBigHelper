@@ -187,9 +187,9 @@ public class CustomChapterPanel {
         List<bool[]> flagArray = new();
         //Dictionary<int, bool[]> flagArray = new();
         var mode = (int) self.Area.Mode;
-        var subchapterIds = customOption.position.childIds().FindAll(id => id>=0);
-        
-        trueBerryCount = 0;
+        var subchapterIds = customOption.position.childIds().ToList().FindAll(id => id>=0);
+
+        trueBerryCount = customOption.position.getSpecialBerries().Count;
         for(int i=0;i<subchapterIds.Count;i++) {
             bool[] list = new bool[subchapterIds[i] != 0
                 ? self.Data.Mode[mode].Checkpoints[subchapterIds[i] - 1].Strawberries
@@ -535,7 +535,7 @@ public class CustomChapterPanel {
                     self.strawberries.Amount = berryCount;
                     self.strawberries.OutOf = berries.Length;
                     self.deaths.Amount = ReallyBigHelperModule.SaveData.getAreaData(self.Area.SID)
-                        .getDeaths(prevOption.position.childIds().FindAll(id => id>=0));
+                        .getDeaths(prevOption.position.childIds().ToList().FindAll(id => id>=0));
                     self.Components.Render();
 
                     self.strawberries.Amount = realStrawbCount;
@@ -595,7 +595,7 @@ public class CustomChapterPanel {
 
                     var realDeathCount = self.deaths.Amount;
                     self.deaths.Amount = ReallyBigHelperModule.SaveData.getAreaData(self.Area.SID)
-                        .getDeaths(selectedOption.position.childIds().FindAll(id => id>=0));
+                        .getDeaths(selectedOption.position.childIds().ToList().FindAll(id => id>=0));
                     self.Components.Render();
                     self.deaths.Amount = realDeathCount;
                     

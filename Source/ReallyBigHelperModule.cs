@@ -181,7 +181,8 @@ public class ReallyBigHelperModule : EverestModule {
         if (self.Golden) {
             SaveData.getAreaData(self.SceneAs<Level>().Session.Area.SID).addBerry(
                 (hasCollabUtils2 ? CollabUtilsCompat.getBerryType(self) : null) ??
-                ReallyBigHelperSaveData.SpecialBerryType.GOLD, Session.currentCheckpoint);
+                (self.Moon ? ReallyBigHelperSaveData.SpecialBerryType.MOONBERRY : ReallyBigHelperSaveData.SpecialBerryType.GOLD),
+                Session.currentCheckpoint);
         }
     }
 

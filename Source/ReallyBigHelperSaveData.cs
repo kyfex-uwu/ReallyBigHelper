@@ -8,6 +8,8 @@ public class ReallyBigHelperSaveData : EverestModuleSaveData{
 		public bool silvered;
 		// public bool bronzed;
 		public bool platinumed;
+
+		public bool moonberried;
 		//diamond
 		//grabless b&b
 		//speed berry
@@ -18,6 +20,7 @@ public class ReallyBigHelperSaveData : EverestModuleSaveData{
 		SILVER,
 		// BRONZE,
 		PLATINUM,
+		MOONBERRY,
 	}
 	public class AreaData {
 		public Dictionary<int, int> deaths = new();
@@ -55,6 +58,11 @@ public class ReallyBigHelperSaveData : EverestModuleSaveData{
 						if (specialBerryData.TryGetValue(checkpoint, out var data) && data.platinumed)
 							return true;
 					return false;
+				case SpecialBerryType.MOONBERRY:
+					foreach (var checkpoint in checkpoints)
+						if (specialBerryData.TryGetValue(checkpoint, out var data) && data.moonberried)
+							return true;
+					return false;
 			}
 
 			return false;
@@ -71,6 +79,9 @@ public class ReallyBigHelperSaveData : EverestModuleSaveData{
 					break;
 				case SpecialBerryType.PLATINUM:
 					specialBerryData[checkpoint].platinumed = true;
+					break;
+				case SpecialBerryType.MOONBERRY:
+					specialBerryData[checkpoint].moonberried = true;
 					break;
 			}
 		}

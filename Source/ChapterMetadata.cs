@@ -134,6 +134,28 @@ public class ChapterMetadata {
     
     public List<string> flags = new();
 
+    public class SpecialBerryIdentifier {
+        public int CollectedCheckpoint;
+
+        public string Type {
+            set {
+                var val = value.ToLower();
+                if (val.Contains("gold")) {
+                    this._Type = ReallyBigHelperSaveData.SpecialBerryType.GOLD;
+                }else if (val.Contains("silver")) {
+                    this._Type = ReallyBigHelperSaveData.SpecialBerryType.SILVER;
+                }else if (val.Contains("plat")) {
+                    this._Type = ReallyBigHelperSaveData.SpecialBerryType.PLATINUM;
+                }else if (val.Contains("moon")) {
+                    this._Type = ReallyBigHelperSaveData.SpecialBerryType.MOONBERRY;
+                }
+            }
+        }
+
+        private ReallyBigHelperSaveData.SpecialBerryType _Type;
+    }
+    public List<SpecialBerryIdentifier> SpecialBerries = new();
+
 #if DEBUG
     public override string ToString() {
         return this.ToString(0);
@@ -233,7 +255,7 @@ public class ChapterMetadata {
             this.flags,
             new List<Final>(this.Chapters.Select(metadata => metadata.cleaned)),
             this.Mountain, this.MHH_HeartID, this.MHH_HeartXMLPath,
-            this.EndScreens);
+            this.EndScreens, this.SpecialBerries);
         foreach (var chapter in this.Chapters) chapter.GiveParent(this.cleaned);
 
         return this.cleaned;
@@ -268,6 +290,7 @@ public class ChapterMetadata {
         public string MHH_HeartDisplayPath;
         
         public Dictionary<string, MapMetaCompleteScreen> endScreens;
+        public List<SpecialBerryIdentifier> specialBerries;
         
         public Final parent;
         public bool selected = false;
@@ -298,7 +321,8 @@ public class ChapterMetadata {
             List<string> flags,
             List<Final> chapters, MapMetaMountain mountain,
             string mhhId, string mhhPath,
-            Dictionary<string, MapMetaCompleteScreen> endScreens) {
+            Dictionary<string, MapMetaCompleteScreen> endScreens,
+            List<SpecialBerryIdentifier> specialBerries) {
             this.tabColor = tabColor;
             this.iconColor = iconColor;
             this.tab = tab;
@@ -312,6 +336,7 @@ public class ChapterMetadata {
             this.MHH_HeartID = mhhId;
             this.MHH_HeartDisplayPath = mhhPath;
             this.endScreens = endScreens;
+            this.specialBerries = specialBerries;
         }
 
         public OuiChapterPanel.Option option;
@@ -339,14 +364,25 @@ public class ChapterMetadata {
             return this.option;
         }
 
-        public List<int> childIds() {
+        public HashSet<int> childIds() {
             if (this.id >= 0) {
-                return new List<int>{this.id};
+                return new HashSet<int>{this.id};
             }
 
-            var toReturn = new List<int>();
+            var toReturn = new HashSet<int>();
             foreach (var child in this.Chapters) {
-                toReturn.AddRange(child.childIds());
+                toReturn.UnionWith(child.childIds());
+            }
+
+            return toReturn;
+        }
+
+        public HashSet<SpecialBerryIdentifier> getSpecialBerries() {
+            var toReturn = new HashSet<SpecialBerryIdentifier>();
+            toReturn.UnionWith(this.specialBerries);
+
+            foreach (var child in this.Chapters) {
+                toReturn.UnionWith(child.getSpecialBerries());
             }
 
             return toReturn;
