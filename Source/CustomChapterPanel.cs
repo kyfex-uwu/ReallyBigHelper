@@ -473,6 +473,7 @@ public class CustomChapterPanel {
         }
         
         if (positions.TryGetValue(self, out var position)) {// !storedFakeSwap.Contains(self) && 
+            self.deaths.flashTimer = 0;
             var selectedOption = self.options[self.option] as CustomChapterOption;
             CustomChapterOption prevOption = null;
             if(lastMovingFrom != CameFrom.VERT &&
