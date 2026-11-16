@@ -125,7 +125,7 @@ public class CustomChapterPanel {
                     if (!SaveData.Instance.DebugMode && !SaveData.Instance.CheatMode) {
                         if (section.Chapters.Count > 0) {
                             var valid = false;
-                            foreach (var id in section.childIds()) {
+                            foreach (var id in section.allIds()) {
                                 if (canShow(self.Area, checkpointNames, id)) {
                                     valid = true;
                                     break;
@@ -187,7 +187,7 @@ public class CustomChapterPanel {
         List<bool[]> flagArray = new();
         //Dictionary<int, bool[]> flagArray = new();
         var mode = (int) self.Area.Mode;
-        var subchapterIds = customOption.position.childIds().ToList().FindAll(id => id>=0);
+        var subchapterIds = customOption.position.allIds().ToList().FindAll(id => id>=0);
 
         trueBerryCount = customOption.position.getSpecialBerries().Count;
         for(int i=0;i<subchapterIds.Count;i++) {
@@ -474,35 +474,56 @@ public class CustomChapterPanel {
             case ChapterMetadata.DisplayType.INFO:
                 var xOffs = 800 * Ease.CubeIn(transitionAmt);
 
-                var customHeart = false;
                 var drawnHeart = false;
+                var shouldDrawHeartSprite = false;
                 var heartPos = self.contentOffset + new Vector2(xOffs, 170f) + self.heartOffset;
-                if (ReallyBigHelperModule.hasMultiHeartCached &&
-                    option.position.MHH_HeartID != null &&
-                    option.position.MHH_HeartDisplayPath != null) {
-                    customHeart = true;
-                    if (MHHFeatures.heartIsCollected(AreaData.Get(self.Area), option.position.MHH_HeartID)) {
-                        if (heartSprite == null || heartID != option.position.MHH_HeartID) {
-                            heartSprite = GFX.GuiSpriteBank.Create(option.position.MHH_HeartDisplayPath);
-                            heartID = option.position.MHH_HeartID;
+                switch (option.position.showHeartWhen) {
+                    case "default":
+                        var customHeart = false;
+                        if (ReallyBigHelperModule.hasMultiHeartCached &&
+                            option.position.MHH_HeartID != null &&
+                            option.position.MHH_HeartDisplayPath != null) {
+                            customHeart = true;
+                            if (MHHFeatures.heartIsCollected(AreaData.Get(self.Area), option.position.MHH_HeartID)) {
+                                if (heartSprite == null || heartID != option.position.MHH_HeartID) {
+                                    heartSprite = GFX.GuiSpriteBank.Create(option.position.MHH_HeartDisplayPath);
+                                    heartID = option.position.MHH_HeartID;
+                                }
+
+                                shouldDrawHeartSprite = true;
+                            }
                         }
+                        
+                        if (!customHeart) {
+                            self.heart.Position = heartPos;
+                            heartSprite = null;
+                            heartID = null;
+                            drawnHeart = true;
+                        }else{
+                            self.heart.Position = new Vector2(9999, 9999);
+                        }
+                        break;
+                    case "moonberry":
+                        self.heart.Position = new Vector2(9999, 9999);
+                        drawnHeart = ReallyBigHelperModule.SaveData.getAreaData(self.Area.SID)
+                            .hasBerry(ReallyBigHelperSaveData.SpecialBerryType.MOONBERRY,
+                                option.position.allIds().ToList().FindAll(id => id >= 0));
+                        if (drawnHeart) {
+                            if (heartSprite == null || heartID != option.position.heartTexture) {
+                                heartSprite = GFX.GuiSpriteBank.Create(option.position.heartTexture);
+                                heartID = option.position.heartTexture;
+                            }
 
-                        if(!heartSprite.Animating) heartSprite.Play("spin");
-                        heartSprite.Position = heartPos + self.Position;
-                        heartSprite.Render();
-                        drawnHeart = true;
-                    }
+                            shouldDrawHeartSprite = true;
+                        }
+                        break;
                 }
-
-                if (!customHeart) {
-                    self.heart.Position = heartPos;
-                    heartSprite = null;
-                    heartID = null;
+                if (shouldDrawHeartSprite) {
+                    if(!heartSprite.Animating) heartSprite.Play("spin");
+                    heartSprite.Position = heartPos + self.Position;
+                    heartSprite.Render();
                     drawnHeart = true;
-                }else {
-                    self.heart.Position = new Vector2(9999, 9999);
                 }
-
                 if (drawnHeart) {
                     self.strawberriesOffset = new Vector2(120f, self.deaths.Visible ? -40f : 0.0f);
                     self.deathsOffset = new Vector2(120f, 40.0f);
@@ -523,7 +544,7 @@ public class CustomChapterPanel {
                 self.strawberries.Amount = berryCount;
                 self.strawberries.OutOf = berries.Length;
                 self.deaths.Amount = ReallyBigHelperModule.SaveData.getAreaData(self.Area.SID)
-                    .getDeaths(option.position.childIds().ToList().FindAll(id => id>=0));
+                    .getDeaths(option.position.allIds().ToList().FindAll(id => id>=0));
                 self.deaths.flashTimer = 0;
                 self.Components.Render();
 
@@ -558,7 +579,6 @@ public class CustomChapterPanel {
                 prevOption = self.options[self.option + (lastMovingFrom==CameFrom.LEFT ? 1 : -1)] as CustomChapterOption;
             if(lastMovingFrom == CameFrom.VERT)
                 prevOption = position.option as CustomChapterOption;
-            var renderPrevPolaroid = false;
             if(prevOption!=null) 
                 if(self.option%2==0)
                     renderInsides(prevOption, Math.Clamp(1 - position.transitionAmt, 0, 0.25f) * 4, self, 
@@ -571,145 +591,6 @@ public class CustomChapterPanel {
                         ref customHeartSprite2, ref customHeartID2);
                 else renderInsides(selectedOption, (Math.Clamp(position.transitionAmt, 0.75f, 1) - 0.75f)*4, self, 
                         ref customHeartSprite1, ref customHeartID1);
-            // switch (prevOption?.position.displayType) {
-            //     case ChapterMetadata.DisplayType.INFO:
-            //         var xOffs = 800 * Ease.CubeIn(Math.Clamp(1 - position.transitionAmt, 0, 0.25f) * 4);
-            //         if (lastMovingFrom == CameFrom.VERT) xOffs = position.transitionAmt > 0.92 ? 0 : 800;
-            //
-            //         var customHeart = false;
-            //         var drawnHeart = false;
-            //         var heartPos = self.contentOffset + new Vector2(xOffs, 170f) + self.heartOffset;
-            //         if (ReallyBigHelperModule.hasMultiHeartCached &&
-            //             prevOption.position.MHH_HeartID != null &&
-            //             prevOption.position.MHH_HeartDisplayPath != null) {
-            //             customHeart = true;
-            //             if (MHHFeatures.heartIsCollected(AreaData.Get(self.Area), prevOption.position.MHH_HeartID)) {
-            //                 if (customHeartSprite == null || customHeartID != prevOption.position.MHH_HeartID) {
-            //                     customHeartSprite = GFX.GuiSpriteBank.Create(prevOption.position.MHH_HeartDisplayPath);
-            //                     customHeartID = prevOption.position.MHH_HeartID;
-            //                 }
-            //
-            //                 if(!customHeartSprite.Animating) customHeartSprite.Play("spin");
-            //                 customHeartSprite.Position = heartPos + self.Position;
-            //                 customHeartSprite.Render();
-            //                 drawnHeart = true;
-            //             }
-            //         }else if(prevOption)
-            //
-            //         if (!customHeart) {
-            //             self.heart.Position = heartPos;
-            //             customHeartSprite = null;
-            //             customHeartID = null;
-            //             drawnHeart = true;
-            //         }else {
-            //             self.heart.Position = new Vector2(9999, 9999);
-            //         }
-            //
-            //         if (drawnHeart) {
-            //             self.strawberriesOffset = new Vector2(120f, self.deaths.Visible ? -40f : 0.0f);
-            //             self.deathsOffset = new Vector2(120f, 40.0f);
-            //         }else {
-            //             self.strawberriesOffset = new Vector2(0f, self.deaths.Visible ? -40f : 0.0f);
-            //             self.deathsOffset = new Vector2(0f, 40.0f);
-            //         }
-            //
-            //         self.strawberries.Position =
-            //             self.contentOffset + new Vector2(xOffs, 170f) + self.strawberriesOffset;
-            //         self.deaths.Position = self.contentOffset + new Vector2(xOffs, 170f) + self.deathsOffset;
-            //
-            //         var realStrawbCount = self.strawberries.Amount;
-            //         var realStrawbOutOf = self.strawberries.OutOf;
-            //         var realDeathCount = self.deaths.Amount;
-            //
-            //         var berries = getBerryList(self, prevOption, out int berryCount);
-            //         self.strawberries.Amount = berryCount;
-            //         self.strawberries.OutOf = berries.Length;
-            //         self.deaths.Amount = ReallyBigHelperModule.SaveData.getAreaData(self.Area.SID)
-            //             .getDeaths(prevOption.position.childIds().ToList().FindAll(id => id>=0));
-            //         self.deaths.flashTimer = 0;
-            //         self.Components.Render();
-            //
-            //         self.strawberries.Amount = realStrawbCount;
-            //         self.strawberries.OutOf = realStrawbOutOf;
-            //         self.deaths.Amount = realDeathCount;
-            //
-            //         break;
-            //     case ChapterMetadata.DisplayType.PREVIEW:
-            //         renderPrevPolaroid = true;
-            //         break;
-            //     case ChapterMetadata.DisplayType.NONE: break;
-            // }
-            //
-            
-            // switch (selectedOption?.position.displayType) {
-            //     case ChapterMetadata.DisplayType.INFO:
-            //         var xOffs = 800 * Ease.CubeIn((Math.Clamp(position.transitionAmt, 0.75f, 1) - 0.75f)*4);
-            //         var heartPos = self.contentOffset + new Vector2(xOffs, 170f) + self.heartOffset;
-            //         
-            //         var customHeart = false;
-            //         var drawnHeart = false;
-            //         if (ReallyBigHelperModule.hasMultiHeartCached && 
-            //             selectedOption.position.MHH_HeartDisplayPath != null) {
-            //             customHeart = true;
-            //             if (MHHFeatures.heartIsCollected(AreaData.Get(self.Area), selectedOption.position.MHH_HeartID)) {
-            //                 if (customHeartSprite == null || customHeartID != selectedOption.position.MHH_HeartID) {
-            //                     customHeartSprite = GFX.GuiSpriteBank.Create(selectedOption.position.MHH_HeartDisplayPath);
-            //                     customHeartID = selectedOption.position.MHH_HeartID;
-            //                 }
-            //
-            //                 if(!customHeartSprite.Animating) customHeartSprite.Play("spin");
-            //                 customHeartSprite.Position = heartPos + self.Position;
-            //                 customHeartSprite.Render();
-            //                 drawnHeart = true;
-            //             }
-            //         }
-            //
-            //         if (!customHeart) {
-            //             self.heart.Position = heartPos;
-            //             customHeartSprite = null;
-            //             customHeartID = null;
-            //             drawnHeart = true;
-            //         } else {
-            //             self.heart.Position = new Vector2(9999, 9999);
-            //         }
-            //         
-            //         if (drawnHeart) {
-            //             self.strawberriesOffset = new Vector2(120f, self.deaths.Visible ? -40f : 0.0f);
-            //             self.deathsOffset = new Vector2(120f, 40.0f);
-            //         } else {
-            //             self.strawberriesOffset = new Vector2(0f, self.deaths.Visible ? -40f : 0.0f);
-            //             self.deathsOffset = new Vector2(0f, 40.0f);
-            //         }
-            //
-            //         self.strawberries.Position = self.contentOffset + new Vector2(xOffs, 170f) + self.strawberriesOffset;
-            //         self.deaths.Position = self.contentOffset + new Vector2(xOffs, 170f) + self.deathsOffset;
-            //
-            //         var realDeathCount = self.deaths.Amount;
-            //         self.deaths.Amount = ReallyBigHelperModule.SaveData.getAreaData(self.Area.SID)
-            //             .getDeaths(selectedOption.position.childIds().ToList().FindAll(id => id>=0));
-            //         self.deaths.flashTimer = 0;
-            //         self.Components.Render();
-            //         self.deaths.Amount = realDeathCount;
-            //         
-            //         break;
-            //     case ChapterMetadata.DisplayType.PREVIEW:
-            //         selectedOption.shouldDrawPreview = true;
-            //         Vector2 center = self.Position + new Vector2(self.contentOffset.X +
-            //             800 * Ease.CubeIn(Math.Clamp(position.transitionAmt-0.75f, 0, 0.25f) * 4), 340f);
-            //         self.DrawCheckpoint(center, selectedOption, self.option);
-            //         selectedOption.shouldDrawPreview = false;
-            //         break;
-            //     case ChapterMetadata.DisplayType.NONE: break;
-            // }
-
-            if (renderPrevPolaroid) {
-                prevOption.shouldDrawPreview = true;
-                var center = self.Position + new Vector2(self.contentOffset.X +
-                    800 * Ease.CubeIn(Math.Clamp(1-position.transitionAmt, 0, 0.25f) * 4), 340f);
-                self.DrawCheckpoint(center, prevOption, 
-                    self.option+(lastMovingFrom==CameFrom.LEFT ? 1 : -1));
-                prevOption.shouldDrawPreview = false;
-            }
         }
 
         return false;//dont render

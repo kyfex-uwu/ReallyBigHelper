@@ -156,7 +156,7 @@ public class ChapterMetadata {
     }
     public List<SpecialBerryIdentifier> SpecialBerries = new();
     public string HeartTexture;
-    public string ShowHeartWhen;
+    public string ShowHeartWhen="default";
 
 #if DEBUG
     public override string ToString() {
@@ -258,7 +258,7 @@ public class ChapterMetadata {
             new List<Final>(this.Chapters.Select(metadata => metadata.cleaned)),
             this.Mountain, this.MHH_HeartID, this.MHH_HeartXMLPath,
             this.EndScreens, this.SpecialBerries,
-            this.HeartTexture ?? "heart", this.ShowHeartWhen);
+            this.HeartTexture, this.ShowHeartWhen ?? "heart");
         foreach (var chapter in this.Chapters) chapter.GiveParent(this.cleaned);
 
         return this.cleaned;
@@ -373,14 +373,14 @@ public class ChapterMetadata {
             return this.option;
         }
 
-        public HashSet<int> childIds() {
+        public HashSet<int> allIds() {
             if (this.id >= 0) {
                 return new HashSet<int>{this.id};
             }
 
             var toReturn = new HashSet<int>();
             foreach (var child in this.Chapters) {
-                toReturn.UnionWith(child.childIds());
+                toReturn.UnionWith(child.allIds());
             }
 
             return toReturn;
