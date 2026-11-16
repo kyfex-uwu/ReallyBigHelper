@@ -473,7 +473,6 @@ public class CustomChapterPanel {
         }
         
         if (positions.TryGetValue(self, out var position)) {// !storedFakeSwap.Contains(self) && 
-            self.deaths.flashTimer = 0;
             var selectedOption = self.options[self.option] as CustomChapterOption;
             CustomChapterOption prevOption = null;
             if(lastMovingFrom != CameFrom.VERT &&
@@ -495,12 +494,12 @@ public class CustomChapterPanel {
                         prevOption.position.MHH_HeartDisplayPath != null) {
                         customHeart = true;
                         if (MHHFeatures.heartIsCollected(AreaData.Get(self.Area), prevOption.position.MHH_HeartID)) {
-                            if (customHeartSprite == null || customHeartID != prevOption.position.MHH_HeartDisplayPath) {
+                            if (customHeartSprite == null || customHeartID != prevOption.position.MHH_HeartID) {
                                 customHeartSprite = GFX.GuiSpriteBank.Create(prevOption.position.MHH_HeartDisplayPath);
-                                customHeartID = prevOption.position.MHH_HeartDisplayPath;
-                                customHeartSprite.Play("spin");
+                                customHeartID = prevOption.position.MHH_HeartID;
                             }
 
+                            if(!customHeartSprite.Animating) customHeartSprite.Play("spin");
                             customHeartSprite.Position = heartPos + self.Position;
                             customHeartSprite.Render();
                             drawnHeart = true;
@@ -537,6 +536,7 @@ public class CustomChapterPanel {
                     self.strawberries.OutOf = berries.Length;
                     self.deaths.Amount = ReallyBigHelperModule.SaveData.getAreaData(self.Area.SID)
                         .getDeaths(prevOption.position.childIds().ToList().FindAll(id => id>=0));
+                    self.deaths.flashTimer = 0;
                     self.Components.Render();
 
                     self.strawberries.Amount = realStrawbCount;
@@ -562,12 +562,12 @@ public class CustomChapterPanel {
                         selectedOption.position.MHH_HeartDisplayPath != null) {
                         customHeart = true;
                         if (MHHFeatures.heartIsCollected(AreaData.Get(self.Area), selectedOption.position.MHH_HeartID)) {
-                            if (customHeartSprite == null || customHeartID != selectedOption.position.MHH_HeartDisplayPath) {
+                            if (customHeartSprite == null || customHeartID != selectedOption.position.MHH_HeartID) {
                                 customHeartSprite = GFX.GuiSpriteBank.Create(selectedOption.position.MHH_HeartDisplayPath);
-                                customHeartID = selectedOption.position.MHH_HeartDisplayPath;
-                                customHeartSprite.Play("spin");
+                                customHeartID = selectedOption.position.MHH_HeartID;
                             }
 
+                            if(!customHeartSprite.Animating) customHeartSprite.Play("spin");
                             customHeartSprite.Position = heartPos + self.Position;
                             customHeartSprite.Render();
                             drawnHeart = true;
@@ -597,6 +597,7 @@ public class CustomChapterPanel {
                     var realDeathCount = self.deaths.Amount;
                     self.deaths.Amount = ReallyBigHelperModule.SaveData.getAreaData(self.Area.SID)
                         .getDeaths(selectedOption.position.childIds().ToList().FindAll(id => id>=0));
+                    self.deaths.flashTimer = 0;
                     self.Components.Render();
                     self.deaths.Amount = realDeathCount;
                     
