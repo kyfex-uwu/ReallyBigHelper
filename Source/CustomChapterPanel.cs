@@ -463,10 +463,13 @@ public class CustomChapterPanel {
         cursor.EmitDelegate(disableRender);
     }
 
-    private static Sprite customHeartSprite;
-    private static string customHeartID;
+    private static Sprite customHeartSprite1;
+    private static Sprite customHeartSprite2;
+    private static string customHeartID1;
+    private static string customHeartID2;
 
-    private static void renderInsides(CustomChapterOption option, float transitionAmt, OuiChapterPanel self) {
+    private static void renderInsides(CustomChapterOption option, float transitionAmt, OuiChapterPanel self,
+        ref Sprite heartSprite, ref string heartID) {
         switch (option.position.displayType) {
             case ChapterMetadata.DisplayType.INFO:
                 var xOffs = 800 * Ease.CubeIn(transitionAmt);
@@ -479,22 +482,22 @@ public class CustomChapterPanel {
                     option.position.MHH_HeartDisplayPath != null) {
                     customHeart = true;
                     if (MHHFeatures.heartIsCollected(AreaData.Get(self.Area), option.position.MHH_HeartID)) {
-                        if (customHeartSprite == null || customHeartID != option.position.MHH_HeartDisplayPath) {
-                            customHeartSprite = GFX.GuiSpriteBank.Create(option.position.MHH_HeartDisplayPath);
-                            customHeartID = option.position.MHH_HeartDisplayPath;
-                            customHeartSprite.Play("spin");
+                        if (heartSprite == null || heartID != option.position.MHH_HeartID) {
+                            heartSprite = GFX.GuiSpriteBank.Create(option.position.MHH_HeartDisplayPath);
+                            heartID = option.position.MHH_HeartID;
                         }
 
-                        customHeartSprite.Position = heartPos + self.Position;
-                        customHeartSprite.Render();
+                        if(!heartSprite.Animating) heartSprite.Play("spin");
+                        heartSprite.Position = heartPos + self.Position;
+                        heartSprite.Render();
                         drawnHeart = true;
                     }
                 }
 
                 if (!customHeart) {
                     self.heart.Position = heartPos;
-                    customHeartSprite = null;
-                    customHeartID = null;
+                    heartSprite = null;
+                    heartID = null;
                     drawnHeart = true;
                 }else {
                     self.heart.Position = new Vector2(9999, 9999);
@@ -521,6 +524,7 @@ public class CustomChapterPanel {
                 self.strawberries.OutOf = berries.Length;
                 self.deaths.Amount = ReallyBigHelperModule.SaveData.getAreaData(self.Area.SID)
                     .getDeaths(option.position.childIds().ToList().FindAll(id => id>=0));
+                self.deaths.flashTimer = 0;
                 self.Components.Render();
 
                 self.strawberries.Amount = realStrawbCount;
@@ -531,7 +535,7 @@ public class CustomChapterPanel {
             case ChapterMetadata.DisplayType.PREVIEW:
                 option.shouldDrawPreview = true;
                 Vector2 center = self.Position + new Vector2(self.contentOffset.X +
-                    800 * Ease.CubeIn(Math.Clamp(transitionAmt, 0, 0.25f) * 4), 340f);
+                    800 * Ease.CubeIn(transitionAmt), 340f);
                 self.DrawCheckpoint(center, option, self.option);
                 option.shouldDrawPreview = false;
                 break;
@@ -555,135 +559,148 @@ public class CustomChapterPanel {
             if(lastMovingFrom == CameFrom.VERT)
                 prevOption = position.option as CustomChapterOption;
             var renderPrevPolaroid = false;
-            switch (prevOption?.position.displayType) {
-                case ChapterMetadata.DisplayType.INFO:
-                    var xOffs = 800 * Ease.CubeIn(Math.Clamp(1 - position.transitionAmt, 0, 0.25f) * 4);
-                    if (lastMovingFrom == CameFrom.VERT) xOffs = position.transitionAmt > 0.92 ? 0 : 800;
-
-                    var customHeart = false;
-                    var drawnHeart = false;
-                    var heartPos = self.contentOffset + new Vector2(xOffs, 170f) + self.heartOffset;
-                    if (ReallyBigHelperModule.hasMultiHeartCached &&
-                        prevOption.position.MHH_HeartID != null &&
-                        prevOption.position.MHH_HeartDisplayPath != null) {
-                        customHeart = true;
-                        if (MHHFeatures.heartIsCollected(AreaData.Get(self.Area), prevOption.position.MHH_HeartID)) {
-                            if (customHeartSprite == null || customHeartID != prevOption.position.MHH_HeartID) {
-                                customHeartSprite = GFX.GuiSpriteBank.Create(prevOption.position.MHH_HeartDisplayPath);
-                                customHeartID = prevOption.position.MHH_HeartID;
-                            }
-
-                            if(!customHeartSprite.Animating) customHeartSprite.Play("spin");
-                            customHeartSprite.Position = heartPos + self.Position;
-                            customHeartSprite.Render();
-                            drawnHeart = true;
-                        }
-                    }else if(prevOption)
-
-                    if (!customHeart) {
-                        self.heart.Position = heartPos;
-                        customHeartSprite = null;
-                        customHeartID = null;
-                        drawnHeart = true;
-                    }else {
-                        self.heart.Position = new Vector2(9999, 9999);
-                    }
-
-                    if (drawnHeart) {
-                        self.strawberriesOffset = new Vector2(120f, self.deaths.Visible ? -40f : 0.0f);
-                        self.deathsOffset = new Vector2(120f, 40.0f);
-                    }else {
-                        self.strawberriesOffset = new Vector2(0f, self.deaths.Visible ? -40f : 0.0f);
-                        self.deathsOffset = new Vector2(0f, 40.0f);
-                    }
-
-                    self.strawberries.Position =
-                        self.contentOffset + new Vector2(xOffs, 170f) + self.strawberriesOffset;
-                    self.deaths.Position = self.contentOffset + new Vector2(xOffs, 170f) + self.deathsOffset;
-
-                    var realStrawbCount = self.strawberries.Amount;
-                    var realStrawbOutOf = self.strawberries.OutOf;
-                    var realDeathCount = self.deaths.Amount;
-
-                    var berries = getBerryList(self, prevOption, out int berryCount);
-                    self.strawberries.Amount = berryCount;
-                    self.strawberries.OutOf = berries.Length;
-                    self.deaths.Amount = ReallyBigHelperModule.SaveData.getAreaData(self.Area.SID)
-                        .getDeaths(prevOption.position.childIds().ToList().FindAll(id => id>=0));
-                    self.deaths.flashTimer = 0;
-                    self.Components.Render();
-
-                    self.strawberries.Amount = realStrawbCount;
-                    self.strawberries.OutOf = realStrawbOutOf;
-                    self.deaths.Amount = realDeathCount;
-
-                    break;
-                case ChapterMetadata.DisplayType.PREVIEW:
-                    renderPrevPolaroid = true;
-                    break;
-                case ChapterMetadata.DisplayType.NONE: break;
-            }
-
-            switch (selectedOption?.position.displayType) {
-                case ChapterMetadata.DisplayType.INFO:
-                    var xOffs = 800 * Ease.CubeIn((Math.Clamp(position.transitionAmt, 0.75f, 1) - 0.75f)*4);
-                    var heartPos = self.contentOffset + new Vector2(xOffs, 170f) + self.heartOffset;
-                    
-                    var customHeart = false;
-                    var drawnHeart = false;
-                    if (ReallyBigHelperModule.hasMultiHeartCached && 
-                        selectedOption.position.MHH_HeartDisplayPath != null) {
-                        customHeart = true;
-                        if (MHHFeatures.heartIsCollected(AreaData.Get(self.Area), selectedOption.position.MHH_HeartID)) {
-                            if (customHeartSprite == null || customHeartID != selectedOption.position.MHH_HeartID) {
-                                customHeartSprite = GFX.GuiSpriteBank.Create(selectedOption.position.MHH_HeartDisplayPath);
-                                customHeartID = selectedOption.position.MHH_HeartID;
-                            }
-
-                            if(!customHeartSprite.Animating) customHeartSprite.Play("spin");
-                            customHeartSprite.Position = heartPos + self.Position;
-                            customHeartSprite.Render();
-                            drawnHeart = true;
-                        }
-                    }
-
-                    if (!customHeart) {
-                        self.heart.Position = heartPos;
-                        customHeartSprite = null;
-                        customHeartID = null;
-                        drawnHeart = true;
-                    } else {
-                        self.heart.Position = new Vector2(9999, 9999);
-                    }
-                    
-                    if (drawnHeart) {
-                        self.strawberriesOffset = new Vector2(120f, self.deaths.Visible ? -40f : 0.0f);
-                        self.deathsOffset = new Vector2(120f, 40.0f);
-                    } else {
-                        self.strawberriesOffset = new Vector2(0f, self.deaths.Visible ? -40f : 0.0f);
-                        self.deathsOffset = new Vector2(0f, 40.0f);
-                    }
-
-                    self.strawberries.Position = self.contentOffset + new Vector2(xOffs, 170f) + self.strawberriesOffset;
-                    self.deaths.Position = self.contentOffset + new Vector2(xOffs, 170f) + self.deathsOffset;
-
-                    var realDeathCount = self.deaths.Amount;
-                    self.deaths.Amount = ReallyBigHelperModule.SaveData.getAreaData(self.Area.SID)
-                        .getDeaths(selectedOption.position.childIds().ToList().FindAll(id => id>=0));
-                    self.deaths.flashTimer = 0;
-                    self.Components.Render();
-                    self.deaths.Amount = realDeathCount;
-                    
-                    break;
-                case ChapterMetadata.DisplayType.PREVIEW:
-                    selectedOption.shouldDrawPreview = true;
-                    Vector2 center = self.Position + new Vector2(self.contentOffset.X +
-                        800 * Ease.CubeIn(Math.Clamp(position.transitionAmt-0.75f, 0, 0.25f) * 4), 340f);
-                    self.DrawCheckpoint(center, selectedOption, self.option);
-                    selectedOption.shouldDrawPreview = false;
-                    break;
-                case ChapterMetadata.DisplayType.NONE: break;
-            }
+            if(prevOption!=null) 
+                if(self.option%2==0)
+                    renderInsides(prevOption, Math.Clamp(1 - position.transitionAmt, 0, 0.25f) * 4, self, 
+                        ref customHeartSprite1, ref customHeartID1);
+                else renderInsides(prevOption, Math.Clamp(1 - position.transitionAmt, 0, 0.25f) * 4, self, 
+                        ref customHeartSprite2, ref customHeartID2);
+            if(selectedOption!=null) 
+                if(self.option%2==0)
+                    renderInsides(selectedOption, (Math.Clamp(position.transitionAmt, 0.75f, 1) - 0.75f)*4, self, 
+                        ref customHeartSprite2, ref customHeartID2);
+                else renderInsides(selectedOption, (Math.Clamp(position.transitionAmt, 0.75f, 1) - 0.75f)*4, self, 
+                        ref customHeartSprite1, ref customHeartID1);
+            // switch (prevOption?.position.displayType) {
+            //     case ChapterMetadata.DisplayType.INFO:
+            //         var xOffs = 800 * Ease.CubeIn(Math.Clamp(1 - position.transitionAmt, 0, 0.25f) * 4);
+            //         if (lastMovingFrom == CameFrom.VERT) xOffs = position.transitionAmt > 0.92 ? 0 : 800;
+            //
+            //         var customHeart = false;
+            //         var drawnHeart = false;
+            //         var heartPos = self.contentOffset + new Vector2(xOffs, 170f) + self.heartOffset;
+            //         if (ReallyBigHelperModule.hasMultiHeartCached &&
+            //             prevOption.position.MHH_HeartID != null &&
+            //             prevOption.position.MHH_HeartDisplayPath != null) {
+            //             customHeart = true;
+            //             if (MHHFeatures.heartIsCollected(AreaData.Get(self.Area), prevOption.position.MHH_HeartID)) {
+            //                 if (customHeartSprite == null || customHeartID != prevOption.position.MHH_HeartID) {
+            //                     customHeartSprite = GFX.GuiSpriteBank.Create(prevOption.position.MHH_HeartDisplayPath);
+            //                     customHeartID = prevOption.position.MHH_HeartID;
+            //                 }
+            //
+            //                 if(!customHeartSprite.Animating) customHeartSprite.Play("spin");
+            //                 customHeartSprite.Position = heartPos + self.Position;
+            //                 customHeartSprite.Render();
+            //                 drawnHeart = true;
+            //             }
+            //         }else if(prevOption)
+            //
+            //         if (!customHeart) {
+            //             self.heart.Position = heartPos;
+            //             customHeartSprite = null;
+            //             customHeartID = null;
+            //             drawnHeart = true;
+            //         }else {
+            //             self.heart.Position = new Vector2(9999, 9999);
+            //         }
+            //
+            //         if (drawnHeart) {
+            //             self.strawberriesOffset = new Vector2(120f, self.deaths.Visible ? -40f : 0.0f);
+            //             self.deathsOffset = new Vector2(120f, 40.0f);
+            //         }else {
+            //             self.strawberriesOffset = new Vector2(0f, self.deaths.Visible ? -40f : 0.0f);
+            //             self.deathsOffset = new Vector2(0f, 40.0f);
+            //         }
+            //
+            //         self.strawberries.Position =
+            //             self.contentOffset + new Vector2(xOffs, 170f) + self.strawberriesOffset;
+            //         self.deaths.Position = self.contentOffset + new Vector2(xOffs, 170f) + self.deathsOffset;
+            //
+            //         var realStrawbCount = self.strawberries.Amount;
+            //         var realStrawbOutOf = self.strawberries.OutOf;
+            //         var realDeathCount = self.deaths.Amount;
+            //
+            //         var berries = getBerryList(self, prevOption, out int berryCount);
+            //         self.strawberries.Amount = berryCount;
+            //         self.strawberries.OutOf = berries.Length;
+            //         self.deaths.Amount = ReallyBigHelperModule.SaveData.getAreaData(self.Area.SID)
+            //             .getDeaths(prevOption.position.childIds().ToList().FindAll(id => id>=0));
+            //         self.deaths.flashTimer = 0;
+            //         self.Components.Render();
+            //
+            //         self.strawberries.Amount = realStrawbCount;
+            //         self.strawberries.OutOf = realStrawbOutOf;
+            //         self.deaths.Amount = realDeathCount;
+            //
+            //         break;
+            //     case ChapterMetadata.DisplayType.PREVIEW:
+            //         renderPrevPolaroid = true;
+            //         break;
+            //     case ChapterMetadata.DisplayType.NONE: break;
+            // }
+            //
+            
+            // switch (selectedOption?.position.displayType) {
+            //     case ChapterMetadata.DisplayType.INFO:
+            //         var xOffs = 800 * Ease.CubeIn((Math.Clamp(position.transitionAmt, 0.75f, 1) - 0.75f)*4);
+            //         var heartPos = self.contentOffset + new Vector2(xOffs, 170f) + self.heartOffset;
+            //         
+            //         var customHeart = false;
+            //         var drawnHeart = false;
+            //         if (ReallyBigHelperModule.hasMultiHeartCached && 
+            //             selectedOption.position.MHH_HeartDisplayPath != null) {
+            //             customHeart = true;
+            //             if (MHHFeatures.heartIsCollected(AreaData.Get(self.Area), selectedOption.position.MHH_HeartID)) {
+            //                 if (customHeartSprite == null || customHeartID != selectedOption.position.MHH_HeartID) {
+            //                     customHeartSprite = GFX.GuiSpriteBank.Create(selectedOption.position.MHH_HeartDisplayPath);
+            //                     customHeartID = selectedOption.position.MHH_HeartID;
+            //                 }
+            //
+            //                 if(!customHeartSprite.Animating) customHeartSprite.Play("spin");
+            //                 customHeartSprite.Position = heartPos + self.Position;
+            //                 customHeartSprite.Render();
+            //                 drawnHeart = true;
+            //             }
+            //         }
+            //
+            //         if (!customHeart) {
+            //             self.heart.Position = heartPos;
+            //             customHeartSprite = null;
+            //             customHeartID = null;
+            //             drawnHeart = true;
+            //         } else {
+            //             self.heart.Position = new Vector2(9999, 9999);
+            //         }
+            //         
+            //         if (drawnHeart) {
+            //             self.strawberriesOffset = new Vector2(120f, self.deaths.Visible ? -40f : 0.0f);
+            //             self.deathsOffset = new Vector2(120f, 40.0f);
+            //         } else {
+            //             self.strawberriesOffset = new Vector2(0f, self.deaths.Visible ? -40f : 0.0f);
+            //             self.deathsOffset = new Vector2(0f, 40.0f);
+            //         }
+            //
+            //         self.strawberries.Position = self.contentOffset + new Vector2(xOffs, 170f) + self.strawberriesOffset;
+            //         self.deaths.Position = self.contentOffset + new Vector2(xOffs, 170f) + self.deathsOffset;
+            //
+            //         var realDeathCount = self.deaths.Amount;
+            //         self.deaths.Amount = ReallyBigHelperModule.SaveData.getAreaData(self.Area.SID)
+            //             .getDeaths(selectedOption.position.childIds().ToList().FindAll(id => id>=0));
+            //         self.deaths.flashTimer = 0;
+            //         self.Components.Render();
+            //         self.deaths.Amount = realDeathCount;
+            //         
+            //         break;
+            //     case ChapterMetadata.DisplayType.PREVIEW:
+            //         selectedOption.shouldDrawPreview = true;
+            //         Vector2 center = self.Position + new Vector2(self.contentOffset.X +
+            //             800 * Ease.CubeIn(Math.Clamp(position.transitionAmt-0.75f, 0, 0.25f) * 4), 340f);
+            //         self.DrawCheckpoint(center, selectedOption, self.option);
+            //         selectedOption.shouldDrawPreview = false;
+            //         break;
+            //     case ChapterMetadata.DisplayType.NONE: break;
+            // }
 
             if (renderPrevPolaroid) {
                 prevOption.shouldDrawPreview = true;
@@ -699,7 +716,10 @@ public class CustomChapterPanel {
     }
 
     private static void customHeartUpdate(On.Celeste.OuiChapterPanel.orig_Update orig, OuiChapterPanel self) {
-        if (self.initialized && customHeartSprite!=null) customHeartSprite.Update();
+        if (self.initialized) {
+            if(customHeartSprite1!=null) customHeartSprite1.Update();
+            if(customHeartSprite2!=null) customHeartSprite2.Update();
+        }
         orig(self);
     }
 
