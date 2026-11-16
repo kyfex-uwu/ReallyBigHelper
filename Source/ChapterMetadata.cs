@@ -155,6 +155,8 @@ public class ChapterMetadata {
         private ReallyBigHelperSaveData.SpecialBerryType _Type;
     }
     public List<SpecialBerryIdentifier> SpecialBerries = new();
+    public string HeartTexture;
+    public string ShowHeartWhen;
 
 #if DEBUG
     public override string ToString() {
@@ -255,7 +257,8 @@ public class ChapterMetadata {
             this.flags,
             new List<Final>(this.Chapters.Select(metadata => metadata.cleaned)),
             this.Mountain, this.MHH_HeartID, this.MHH_HeartXMLPath,
-            this.EndScreens, this.SpecialBerries);
+            this.EndScreens, this.SpecialBerries,
+            this.HeartTexture ?? "heart", this.ShowHeartWhen);
         foreach (var chapter in this.Chapters) chapter.GiveParent(this.cleaned);
 
         return this.cleaned;
@@ -291,6 +294,9 @@ public class ChapterMetadata {
         
         public Dictionary<string, MapMetaCompleteScreen> endScreens;
         public List<SpecialBerryIdentifier> specialBerries;
+
+        public string heartTexture;
+        public string showHeartWhen;
         
         public Final parent;
         public bool selected = false;
@@ -322,7 +328,8 @@ public class ChapterMetadata {
             List<Final> chapters, MapMetaMountain mountain,
             string mhhId, string mhhPath,
             Dictionary<string, MapMetaCompleteScreen> endScreens,
-            List<SpecialBerryIdentifier> specialBerries) {
+            List<SpecialBerryIdentifier> specialBerries,
+            string heartTexture, string showHeartWhen) {
             this.tabColor = tabColor;
             this.iconColor = iconColor;
             this.tab = tab;
@@ -337,6 +344,8 @@ public class ChapterMetadata {
             this.MHH_HeartDisplayPath = mhhPath;
             this.endScreens = endScreens;
             this.specialBerries = specialBerries;
+            this.heartTexture = heartTexture;
+            this.showHeartWhen = showHeartWhen;
         }
 
         public OuiChapterPanel.Option option;
@@ -379,7 +388,7 @@ public class ChapterMetadata {
 
         public HashSet<SpecialBerryIdentifier> getSpecialBerries() {
             var toReturn = new HashSet<SpecialBerryIdentifier>();
-            toReturn.UnionWith(this.specialBerries);
+            if(this.specialBerries != null) toReturn.UnionWith(this.specialBerries);
 
             foreach (var child in this.Chapters) {
                 toReturn.UnionWith(child.getSpecialBerries());
