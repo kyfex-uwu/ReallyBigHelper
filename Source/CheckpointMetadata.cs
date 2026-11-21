@@ -59,12 +59,32 @@ public class ThemeData {
     }
 }
 
-public class ChapterMetadata {
+public class ChapterMeta : CheckpointMetadata {
+    public Dictionary<string, ThemeData> Theme;
+    public Dictionary<string, MapMetaCompleteScreen> EndScreens;
+
+    public Final Root() {
+        return this.cleaned; 
+    }
+    public void CleanupRoot() {
+        if (this.Chapters == null) this.Chapters = new();
+        if (this.Theme == null) this.Theme = new();
+
+        Logger.Info("ReallyBigHelper", "cleaning chapters");
+        foreach (var chapter in this.Chapters) chapter.Cleanup(this);
+        
+        this.Cleanup(this);
+    }
+    
+    public MapMetaCompleteScreen GetCompleteScreen(string name) {
+        return this.EndScreens.TryGetValue(name, out var screen) ? screen : null;
+    }
+}
+public class CheckpointMetadata {
+    protected Final cleaned;
     private static readonly double darkenFactor = 0.4;
-
-
-    public List<ChapterMetadata> Chapters = new();
-    private Final cleaned;
+    
+    public List<CheckpointMetadata> Chapters = new();
     private string iconName;
     public int id = -1;
     public string text;
@@ -72,11 +92,6 @@ public class ChapterMetadata {
 
     public string MHH_HeartID = null;
     public string MHH_HeartXMLPath = null;
-
-    public Dictionary<string, ThemeData> Theme;
-    private Dictionary<string, ThemeData> parentTheme;
-
-    public Dictionary<string, MapMetaCompleteScreen> EndScreens;
 
     private Color? _tabColor;
     public string tabColor {
@@ -197,11 +212,8 @@ public class ChapterMetadata {
             ((int)Math.Round(255 - (255 - int.Parse(color.Substring(6, 2), NumberStyles.HexNumber)) * darkenFactor))
                 .ToString("X2");
     }
-    public Final Cleanup() {
+    public Final Cleanup(ChapterMeta root) {
         if (this.Chapters == null) this.Chapters = new();
-        var theme = this.Theme ?? new Dictionary<string, ThemeData>();
-        if (this.parentTheme != null) theme = ThemeData.apply(theme, this.parentTheme);
-        foreach (var chapter in this.Chapters) chapter.GiveParentTheme(theme);
         
         if (this._icon == null) {
             if (this.Chapters.Count == 0) {
@@ -216,7 +228,7 @@ public class ChapterMetadata {
 
         string iconColor = null;
         string tabColor = null;
-        if (theme.TryGetValue(this.iconName, out var v)) {
+        if (root.Theme.TryGetValue(this.iconName, out var v)) {
             iconColor = v.iconColor;
             tabColor = v.tabColor;
             this.tab = v.tab;
@@ -249,15 +261,14 @@ public class ChapterMetadata {
 
         if (this.Chapters.Count > 0) this.id = -1;
 
-        Logger.Info("ReallyBigHelper", "cleaning chapters");
-        foreach (var chapter in this.Chapters) chapter.Cleanup();
+        foreach (var chapter in this.Chapters) chapter.Cleanup(root);
         this.cleaned = new Final(this._tabColor.Value, this._iconColor.Value,
             this._tab, this._icon,
             this.id, this.text, this._displayType,
             this.flags,
             new List<Final>(this.Chapters.Select(metadata => metadata.cleaned)),
             this.Mountain, this.MHH_HeartID, this.MHH_HeartXMLPath,
-            this.EndScreens, this.SpecialBerries,
+            this.SpecialBerries,
             this.HeartTexture, this.ShowHeartWhen ?? "heart");
         foreach (var chapter in this.Chapters) chapter.GiveParent(this.cleaned);
 
@@ -266,9 +277,6 @@ public class ChapterMetadata {
 
     private void GiveParent(Final parent) {
         this.cleaned.parent = parent;
-    }
-    private void GiveParentTheme(Dictionary<string, ThemeData> theme) {
-        this.parentTheme = theme;
     }
 
     public record Final {
@@ -311,23 +319,12 @@ public class ChapterMetadata {
             return this.Mountain;
         }
 
-        public MapMetaCompleteScreen GetCompleteScreen(string name) {
-            if (this.endScreens == null) {
-                if (this.parent == null) return null;
-                return this.parent.GetCompleteScreen(name);
-            }
-
-            return this.endScreens.TryGetValue(name, out var screen) ? screen : this.parent.GetCompleteScreen(name);
-        }
-
-
         public Final(Color tabColor, Color iconColor,
             MTexture tab, MTexture icon,
             int id, string text, DisplayType displayType,
             List<string> flags,
             List<Final> chapters, MapMetaMountain mountain,
             string mhhId, string mhhPath,
-            Dictionary<string, MapMetaCompleteScreen> endScreens,
             List<SpecialBerryIdentifier> specialBerries,
             string heartTexture, string showHeartWhen) {
             this.tabColor = tabColor;
@@ -342,7 +339,6 @@ public class ChapterMetadata {
             this.Mountain = mountain;
             this.MHH_HeartID = mhhId;
             this.MHH_HeartDisplayPath = mhhPath;
-            this.endScreens = endScreens;
             this.specialBerries = specialBerries;
             this.heartTexture = heartTexture;
             this.showHeartWhen = showHeartWhen;
@@ -352,21 +348,21 @@ public class ChapterMetadata {
         public OuiChapterPanel.Option getOption(OuiChapterPanel holder, string textLabel, string roomName) {
             if (this.option != null) return this.option;
             
-            this.option = new CustomChapterOption {
+            this.option = new CustomCheckpointOption {
                 Bg = this.tab,
                 Icon = this.icon,
                 BgColor = this.tabColor,
                 FgColor = this.iconColor,
                 chapterIndex = this.id,
-                CheckpointLevelName = this.Chapters.Count == 0
+                CheckpointLevelName = (this.Chapters.Count == 0
                     ? roomName
-                    : CustomChapterPanel.reallyBigSectionName,
+                    : CustomChapterPanel.reallyBigSectionName),
                 untranslatedName = $"ReallyBigHelper_{holder.Area.SID}_{textLabel ?? AreaData.GetStartName(holder.Area)}",
                 CheckpointRotation = Calc.Random.Choose(-1, 1) * Calc.Random.Range(0.05f, 0.2f),
                 CheckpointOffset = new Vector2(Calc.Random.Range(-16, 16), Calc.Random.Range(-16, 16)),
                 Large = false,
                 Siblings = CustomChapterPanel.positions[holder].Chapters.Count,
-                MHHData = new CustomChapterOption.MHHDataObj(this.MHH_HeartID, this.MHH_HeartDisplayPath),
+                MHHData = new CustomCheckpointOption.MHHDataObj(this.MHH_HeartID, this.MHH_HeartDisplayPath),
                 
                 position = this
             };

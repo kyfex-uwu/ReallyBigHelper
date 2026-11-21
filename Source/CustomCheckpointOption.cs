@@ -4,10 +4,10 @@ using MonoMod.Cil;
 
 namespace Celeste.Mod.ReallyBigHelper;
 
-public class CustomChapterOption : OuiChapterPanel.Option {
+public class CustomCheckpointOption : OuiChapterPanel.Option {
     public Color FgColor;
     public int chapterIndex;
-    public ChapterMetadata.Final position;
+    public CheckpointMetadata.Final position;
     private string _untranslatedName;
     public MHHDataObj MHHData;
     public bool shouldDrawPreview=false;
@@ -35,7 +35,7 @@ public class CustomChapterOption : OuiChapterPanel.Option {
     private static void GetName(bool silent) {
         foreach(var smth in CustomChapterPanel.positions) {
             foreach (var option in smth.Key.options) {
-                if (option is CustomChapterOption customOption) {
+                if (option is CustomCheckpointOption customOption) {
                     customOption.untranslatedName = customOption.untranslatedName;
                 }
             }
@@ -51,7 +51,7 @@ public class CustomChapterOption : OuiChapterPanel.Option {
     }
 
     private static Color getColor(Color white, OuiChapterPanel.Option option) {
-        if (option is CustomChapterOption customOption) return customOption.FgColor;
+        if (option is CustomCheckpointOption customOption) return customOption.FgColor;
         return white;
     }
 }

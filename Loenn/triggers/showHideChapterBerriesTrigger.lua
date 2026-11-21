@@ -6,7 +6,8 @@ return {
             data = {
                 mode="set",
                 list="",
-                onEnter=true
+                onEnter=true,
+                forceShow="unset",
             },
         }
     },
@@ -23,6 +24,23 @@ return {
         list = {
             fieldType = "list",
             elementDefault = "0",
+        },
+        forceShow = {
+            default="unset"
+            options={
+                "show",
+                "hide",
+                "unset",
+                "vanilla",
+            }
         }
+    },
+    fieldOrder={
+        "x", "y",
+        "width","height",
+        "list",
+        "mode",
+        "onEnter",
+        "forceShow",
     },
 }

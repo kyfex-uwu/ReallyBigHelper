@@ -10,30 +10,36 @@ namespace Celeste.Mod.ReallyBigHelper;
 [CustomEntity("ReallyBigHelper/ShowHideChapterBerriesTrigger")]
 public class ShowHideChapterBerriesTrigger : Trigger {
     public class PauseMenuBerryController {
-        public bool whitelist;
-        public HashSet<int> checkpoints;
-        public PauseMenuBerryController() {
-            this.whitelist = false;
-            this.checkpoints = new HashSet<int>();
-        }
+        public bool whitelist = false;
+        public HashSet<int> checkpoints = new();
+        public ShowMode forceShow = ShowMode.VANILLA;
     }
     public static readonly string pauseMenuBerryController = "ReallyBigHelper_pauseMenuBerryController";
 
-    public enum Mode {
+    public enum WhichMode {
         ADD,
         REMOVE,
         SET,
         RESET
     }
+
+    public enum ShowMode {
+        SHOW,
+        HIDE,
+        UNSET,
+        VANILLA
+    }
     public readonly bool onEnter;
-    public readonly Mode mode;
+    public readonly WhichMode whichMode;
     public readonly HashSet<int> list;
+    public ShowMode showMode;
     
     // public readonly HashSet<>
     public ShowHideChapterBerriesTrigger(EntityData data, Vector2 offset) : base(data, offset) {
         this.onEnter = data.Bool("onEnter", true);
-        this.mode = data.Enum("mode", Mode.SET);
+        this.whichMode = data.Enum("mode", WhichMode.SET);
         this.list = new HashSet<int>(data.String("list", "").Split(",").Select(num => int.TryParse(num, out var output) ? output : -1));
+        this.showMode = data.Enum("forceShow", ShowMode.UNSET);
     }
 
     public override void OnEnter(Player player) {
@@ -59,24 +65,26 @@ public class ShowHideChapterBerriesTrigger : Trigger {
     private void run() {
         var controller = getController(this.SceneAs<Level>());
 
-        switch (this.mode) {
-            case Mode.ADD:
-            case Mode.REMOVE:
-                if(controller.whitelist == (this.mode == Mode.ADD))
+        switch (this.whichMode) {
+            case WhichMode.ADD:
+            case WhichMode.REMOVE:
+                if(controller.whitelist == (this.whichMode == WhichMode.ADD))
                     controller.checkpoints.UnionWith(this.list);
                 else
                     controller.checkpoints.ExceptWith(this.list);
                 break;
-            case Mode.SET:
+            case WhichMode.SET:
                 controller.whitelist = true;
                 controller.checkpoints.Clear();
                 controller.checkpoints.UnionWith(this.list);
                 break;
-            case Mode.RESET:
+            case WhichMode.RESET:
                 controller.whitelist = false;
                 controller.checkpoints.Clear();
                 break;
         }
+
+        if(this.showMode != ShowMode.UNSET) controller.forceShow = this.showMode;
     }
 
     public static void Load() {
@@ -90,6 +98,11 @@ public class ShowHideChapterBerriesTrigger : Trigger {
     private static void filterBerries(ILContext ctx) {
         var cursor = new ILCursor(ctx);
 
+        cursor.GotoNext(MoveType.After, instr =>
+            instr.MatchLdfld<AreaModeStats>("Completed"));
+        cursor.EmitLdarg0();
+        cursor.EmitDelegate(overrideCompletedCheck);
+            
         cursor.GotoNext(MoveType.Before, instr =>
             instr.MatchCall<GameplayStats>("getInitialPosition"));
         cursor.EmitLdloca(8);
@@ -164,6 +177,16 @@ public class ShowHideChapterBerriesTrigger : Trigger {
             (1920 - (totalStrawberries - 1) * 32 - 
                 (totalStrawberries <= 0 || checkpoints == 0 ? 0 : (checkpoints - 1) * 32)) / 2,
             (float)(1016.0 + (1.0 - easeAmt) * 80.0));
+    }
+
+    private static bool overrideCompletedCheck(bool completed, GameplayStats self) {
+        var controller = getController(self.SceneAs<Level>());
+        switch (controller.forceShow) {
+            case ShowMode.VANILLA: return completed;
+            case ShowMode.SHOW: return false;
+            case ShowMode.HIDE: return true;
+        }
+        return completed;
     }
 
     private static int getLastChapter(int i2, GameplayStats self) {

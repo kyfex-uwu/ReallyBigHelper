@@ -14,7 +14,7 @@ public class ReallyBigHelperModule : EverestModule {
     public override Type SessionType => typeof(ReallyBigHelperSession);
     public static ReallyBigHelperSession Session => (ReallyBigHelperSession)Instance._Session;
     
-    public static Dictionary<string, ChapterMetadata.Final[]> chapterData = new();
+    public static Dictionary<string, ChapterMeta[]> chapterData = new();
 
     public ReallyBigHelperModule() {
         Instance = this;
@@ -31,7 +31,7 @@ public class ReallyBigHelperModule : EverestModule {
 
     private static List<Hook> hooks = new();
     public override void Load() {
-        CustomChapterOption.Load();
+        CustomCheckpointOption.Load();
         CustomChapterPanel.Load();
         MountainModelExtensions.Load();
         ShowHideChapterBerriesTrigger.Load();
@@ -52,7 +52,7 @@ public class ReallyBigHelperModule : EverestModule {
     }
 
     public override void Unload() {
-        CustomChapterOption.Unload();
+        CustomCheckpointOption.Unload();
         CustomChapterPanel.Unload();
         MountainModelExtensions.Unload();
         ShowHideChapterBerriesTrigger.Unload();
@@ -91,15 +91,16 @@ public class ReallyBigHelperModule : EverestModule {
 
     private static void processMeta(ModAsset modAsset, string path) {
         modAsset.Type = typeof(AssetTypeYaml);
-        if (modAsset.TryDeserialize(out ChapterMetadata result)) {
+        if (modAsset.TryDeserialize(out ChapterMeta result)) {
+            result.CleanupRoot();
             var areaModePath = path.Substring("Maps/".Length, path.Length - ".reallybig.meta".Length - "Maps/".Length);
             var found = false;
             foreach (var area in AreaData.Areas) {
                 for(int i=0;i<area.Mode.Length;i++) {
                     if (areaModePath == area.Mode[i]?.Path) {
                         if (!chapterData.ContainsKey(area.SID))
-                            chapterData.Add(area.SID, new ChapterMetadata.Final[area.Mode.Length]);
-                        chapterData[area.SID][i] = result.Cleanup();
+                            chapterData.Add(area.SID, new ChapterMeta[area.Mode.Length]);
+                        chapterData[area.SID][i] = result;
                         found = true;
                         break;
                     }
@@ -181,7 +182,11 @@ public class ReallyBigHelperModule : EverestModule {
         if (self.Golden) {
             SaveData.getAreaData(self.SceneAs<Level>().Session.Area.SID).addBerry(
                 (hasCollabUtils2 ? CollabUtilsCompat.getBerryType(self) : null) ??
-                (self.Moon ? ReallyBigHelperSaveData.SpecialBerryType.MOONBERRY : ReallyBigHelperSaveData.SpecialBerryType.GOLD),
+                ReallyBigHelperSaveData.SpecialBerryType.GOLD,
+                Session.currentCheckpoint);
+        }else if (self.Moon) {
+            SaveData.getAreaData(self.SceneAs<Level>().Session.Area.SID).addBerry(
+                ReallyBigHelperSaveData.SpecialBerryType.MOONBERRY,
                 Session.currentCheckpoint);
         }
     }

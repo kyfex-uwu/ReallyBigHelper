@@ -15,7 +15,6 @@ public class SetEndscreenTrigger : Trigger {
         this.name = data.Bool("clear") ? null : data.String("name");
     }
     public static readonly string customEndscreenName = "ReallyBigHelper_customEndscreenName";
-    public static readonly string reallyBigSessionMeta = "ReallyBigHelper_reallyBigSessionMeta";
     
     private static void setCustomEndScreen(Level level, string name) {
         var data = DynamicData.For(level.Session);
