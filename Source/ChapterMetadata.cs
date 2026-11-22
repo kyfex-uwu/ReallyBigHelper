@@ -345,7 +345,7 @@ public class CheckpointMetadata {
         }
 
         public CustomCheckpointOption customOption;
-        public CustomCheckpointOption getOption(OuiChapterPanel holder, string textLabel, string roomName) {
+        public CustomCheckpointOption getOption(OuiChapterPanel holder, string textLabel, string roomName, List<string> allNames) {
             if (this.customOption != null) return this.customOption;
             
             this.customOption = new CustomCheckpointOption {
@@ -361,7 +361,10 @@ public class CheckpointMetadata {
                 CheckpointRotation = Calc.Random.Choose(-1, 1) * Calc.Random.Range(0.05f, 0.2f),
                 CheckpointOffset = new Vector2(Calc.Random.Range(-16, 16), Calc.Random.Range(-16, 16)),
                 Large = false,
-                Siblings = CustomChapterPanel.positions[holder].Chapters.Count,
+                Siblings = CustomChapterPanel.positions[holder].Chapters.FindAll(final=>
+                    final.id>=0 && final.id<allNames.Count&&
+                    SaveData.Instance.Areas_Safe[holder.Area.ID]
+                        .Modes[(int)holder.Area.Mode].Checkpoints.Contains(allNames[final.id])).Count,
                 MHHData = new CustomCheckpointOption.MHHDataObj(this.MHH_HeartID, this.MHH_HeartDisplayPath),
                 
                 position = this

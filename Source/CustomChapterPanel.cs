@@ -59,7 +59,7 @@ public class CustomChapterPanel {
         foreach(var hook in hooks) hook.Dispose();
     }
 
-    private static bool canShow(AreaKey area, List<string> names, int index) {
+    public static bool canShowCheckpoint(AreaKey area, List<string> names, int index) {
         if (index == 0) return true;
         if (index < 0 || index >= names.Count) return false;
         return SaveData.Instance.Areas_Safe[area.ID]
@@ -126,7 +126,7 @@ public class CustomChapterPanel {
                         if (section.Chapters.Count > 0) {
                             var valid = false;
                             foreach (var id in section.allIds()) {
-                                if (canShow(self.Area, checkpointNames, id)) {
+                                if (canShowCheckpoint(self.Area, checkpointNames, id)) {
                                     valid = true;
                                     break;
                                 }
@@ -135,7 +135,7 @@ public class CustomChapterPanel {
                             if (!valid) {
                                 continue;
                             }
-                        }else if (!canShow(self.Area, checkpointNames, section.id)) {
+                        }else if (!canShowCheckpoint(self.Area, checkpointNames, section.id)) {
                             continue;
                         }
                     }
@@ -148,7 +148,7 @@ public class CustomChapterPanel {
 
                     self.checkpoints.Add(section.getOption(self, textLabel,
                         (section.id >= 0 && section.id < checkpointNames.Count) ? 
-                            checkpointNames[section.id] : null));
+                            checkpointNames[section.id] : null, checkpointNames));
                 }
 
                 self.option = self.checkpoints.Count - 1;
