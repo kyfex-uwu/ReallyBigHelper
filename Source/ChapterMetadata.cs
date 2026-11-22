@@ -344,11 +344,11 @@ public class CheckpointMetadata {
             this.showHeartWhen = showHeartWhen;
         }
 
-        public OuiChapterPanel.Option option;
-        public OuiChapterPanel.Option getOption(OuiChapterPanel holder, string textLabel, string roomName) {
-            if (this.option != null) return this.option;
+        public CustomCheckpointOption customOption;
+        public CustomCheckpointOption getOption(OuiChapterPanel holder, string textLabel, string roomName) {
+            if (this.customOption != null) return this.customOption;
             
-            this.option = new CustomCheckpointOption {
+            this.customOption = new CustomCheckpointOption {
                 Bg = this.tab,
                 Icon = this.icon,
                 BgColor = this.tabColor,
@@ -366,7 +366,7 @@ public class CheckpointMetadata {
                 
                 position = this
             };
-            return this.option;
+            return this.customOption;
         }
 
         public HashSet<int> allIds() {

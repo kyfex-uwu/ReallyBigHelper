@@ -67,17 +67,17 @@ public class CustomChapterPanel {
     }
     //this could be done with il hooks. but why
     private static float targetHeight;
+    private static CheckpointMetadata.Final prevOption = null;
     private static IEnumerator swapMixin(On.Celeste.OuiChapterPanel.orig_SwapRoutine orig, OuiChapterPanel self) {
-        lastMovingFrom = CameFrom.VERT;
-        if (self.option < 0) self.option = 0;
-        else if (self.option >= self.options.Count) self.option = self.options.Count - 1;
-        
         if (!ReallyBigHelperModule.chapterData.ContainsKey(self.Area.SID)) {
             yield return new SwapImmediately(orig(self));
         } else {
+            if (self.option < 0) self.option = 0;
+            else if (self.option >= self.options.Count) self.option = self.options.Count - 1;
+            
             var fromHeight = self.height;
             targetHeight = 540;
-            if (self.selectingMode ^ storedFakeSwap.Contains(self)) {
+            if (self.selectingMode != storedFakeSwap.Contains(self)) {
                 positions.TryGetValue(self, out var pos);
                 if(self.selectingMode && pos == null) 
                     pos = ReallyBigHelperModule.chapterData[self.Area.SID][(int)self.Area.Mode].Root();
@@ -210,36 +210,6 @@ public class CustomChapterPanel {
                     }
                 }
             }
-            
-            //levels dont have an order we can rely on unfortunately
-            // foreach (EntityID id in self.RealStats.Modes[mode].Strawberries) {
-            //     EntityData strawberry = self.Data.Mode[mode].MapData.Strawberries.Find(data => data.ID == id.ID);
-            //     // If it is a normal strawberry and has checkpointID assigned use the checkpointID
-            //     if(strawberry != null && strawberry.Int("checkpointID") == subchapterIds[i]-1)
-            //     {
-            //         trueBerryCount++;
-            //         continue;
-            //     }
-            //     
-            //     // If not, find the first previous room that's a checkpoint and use that id.
-            //     if(strawberry == null || strawberry.Int("checkpointID") == -1)
-            //     {
-            //         int levelI = self.Data.Mode[mode].MapData.Levels.FindIndex(data => data.Name == id.Level);
-            //         while(levelI > 0)
-            //         {
-            //             LevelData data = self.Data.Mode[mode].MapData.Levels[levelI];
-            //             if(data.HasCheckpoint)
-            //             {
-            //                 if(self.Data.Mode[mode].Checkpoints[subchapterIds[i]].Level == data.Name)
-            //                 {
-            //                     trueBerryCount++;
-            //                 }
-            //                 break;
-            //             }
-            //             levelI--;
-            //         }
-            //     }
-            // }
         }
         var berryList = new bool[flagArray.Aggregate(0, (total, arr) => total + arr.Length)];
         var index = 0;
@@ -318,6 +288,7 @@ public class CustomChapterPanel {
         positions[self] = next;
         positions[self].selected = true;
         storedFakeSwap.Add(self);//to counteract the swapping back
+        prevOption = positions.TryGetValue(self, out var pos) ? pos : null;
         Audio.Play("event:/ui/world_map/chapter/level_select");
         self.Swap();
     }
@@ -327,13 +298,10 @@ public class CustomChapterPanel {
         return orig(self, next);
     }
 
-    private enum CameFrom{ LEFT, RIGHT, VERT }
-    private static CameFrom lastMovingFrom = CameFrom.VERT;
-    private static void onLeftOrRight(OuiChapterPanel self, CameFrom dir) {
+    private static void onLeftOrRight(OuiChapterPanel self) {
         if (positions.TryGetValue(self, out var position)) {
             position.transitionAmt = 1;
             targetHeight = self.GetModeHeight();
-            lastMovingFrom = dir;
         }
     }
     private static void updateMixin(ILContext ctx) {
@@ -346,24 +314,41 @@ public class CustomChapterPanel {
         
         cursor.GotoNext(MoveType.After, instr =>
             instr.MatchLdstr("event:/ui/world_map/chapter/tab_roll_left"));
+        cursor.GotoNext(MoveType.Before, instr=>instr.MatchLdarg0(),
+            instr => instr.MatchCallvirt<OuiChapterPanel>("get_option"));
+        cursor.EmitLdarg0();
+        cursor.EmitDelegate(setPrevOption);
         cursor.GotoNext(MoveType.After, instr => instr.MatchCallvirt<OuiChapterPanel>("set_option"));
         cursor.EmitLdarg0();
-        cursor.EmitLdcI4(0);
         cursor.EmitDelegate(onLeftOrRight);
         cursor.GotoNext(MoveType.After, instr =>
             instr.MatchLdstr("event:/ui/world_map/chapter/tab_roll_right"));
+        cursor.GotoNext(MoveType.Before, instr=>instr.MatchLdarg0(),
+            instr => instr.MatchCallvirt<OuiChapterPanel>("get_option"));
+        cursor.EmitLdarg0();
+        cursor.EmitDelegate(setPrevOption);
         cursor.GotoNext(MoveType.After, instr => instr.MatchCallvirt<OuiChapterPanel>("set_option"));
         cursor.EmitLdarg0();
-        cursor.EmitLdcI4(1);
         cursor.EmitDelegate(onLeftOrRight);
         
         cursor.GotoNext(MoveType.After, instr =>
             instr.MatchLdstr("event:/ui/world_map/chapter/checkpoint_back"));
+        //IL_0300: call         class FMOD.Studio.EventInstance Celeste.Audio::Play(string)
+        cursor.GotoNext(MoveType.After, instr => 
+            instr.MatchCall("Celeste.Audio", "Play"),
+            instr => instr.MatchPop());
+        cursor.EmitLdarg0();
+        cursor.EmitDelegate(setPrevOption);
         cursor.GotoNext(MoveType.Before, instr =>
             instr.MatchCallvirt<OuiChapterPanel>("Swap"));
         cursor.EmitLdarg0();
         cursor.EmitDelegate(interceptBack);
     }
+
+    private static void setPrevOption(OuiChapterPanel self) {
+        if (positions.TryGetValue(self, out var pos))
+            prevOption = pos.Chapters[self.option];
+    }   
     private static void interceptBack(OuiChapterPanel self) {
         if (positions.ContainsKey(self) && positions[self].parent != null){
             storedFakeSwap.Add(self); //to couteract the swapping back
@@ -541,9 +526,10 @@ public class CustomChapterPanel {
             case CheckpointMetadata.DisplayType.PREVIEW:
                 self.deaths.Visible = false;
                 option.shouldDrawPreview = true;
-                Vector2 center = self.Position + new Vector2(self.contentOffset.X +
-                    800 * Ease.CubeIn(transitionAmt), 340f);
-                self.DrawCheckpoint(center, option, self.option);
+                option.CheckpointSlideOut = option.position == prevOption
+                    ? 0//bruh
+                    : (Math.Clamp(option.position.transitionAmt, 0.75f, 1) - 0.75f)*4;
+                self.DrawCheckpoint(self.Position + new Vector2(440 + 800 * Ease.CubeIn(transitionAmt), 340f), option, self.option);
                 option.shouldDrawPreview = false;
                 break;
             case CheckpointMetadata.DisplayType.NONE: 
@@ -560,19 +546,15 @@ public class CustomChapterPanel {
         
         if (positions.TryGetValue(self, out var position)) {// !storedFakeSwap.Contains(self) && 
             var selectedOption = self.options[self.option] as CustomCheckpointOption;
-            CustomCheckpointOption prevOption = null;
-            if(lastMovingFrom != CameFrom.VERT &&
-               self.option + (lastMovingFrom==CameFrom.LEFT ? 1 : -1)>=0 && 
-               self.option + (lastMovingFrom==CameFrom.LEFT ? 1 : -1)<self.options.Count)
-                prevOption = self.options[self.option + (lastMovingFrom==CameFrom.LEFT ? 1 : -1)] as CustomCheckpointOption;
-            if(lastMovingFrom == CameFrom.VERT)
-                prevOption = position.option as CustomCheckpointOption;
-            if(prevOption!=null) 
-                if(self.option%2==0)
-                    renderInsides(prevOption, Math.Clamp(1 - position.transitionAmt, 0, 0.25f) * 4, self, 
+             if(prevOption!=null) {
+                if (self.option % 2 == 0)
+                    renderInsides(prevOption.customOption, Math.Clamp(1 - position.transitionAmt, 0, 0.25f) * 4, self,
                         ref customHeartSprite1, ref customHeartID1);
-                else renderInsides(prevOption, Math.Clamp(1 - position.transitionAmt, 0, 0.25f) * 4, self, 
+                else
+                    renderInsides(prevOption.customOption, Math.Clamp(1 - position.transitionAmt, 0, 0.25f) * 4, self,
                         ref customHeartSprite2, ref customHeartID2);
+                
+            }
             if(selectedOption!=null) 
                 if(self.option%2==0)
                     renderInsides(selectedOption, (Math.Clamp(position.transitionAmt, 0.75f, 1) - 0.75f)*4, self, 
@@ -595,7 +577,7 @@ public class CustomChapterPanel {
     public static CheckpointMetadata.Final EnteringPosition;
     private static IEnumerator customStartRoutine(On.Celeste.OuiChapterPanel.orig_StartRoutine orig, OuiChapterPanel self, string checkpoint) {
         if (positions.TryGetValue(self, out var position) && position.Chapters.Count>0) {
-            EnteringPosition = position.Chapters.Find(final => final.option != null && final.option.CheckpointLevelName == checkpoint);
+            EnteringPosition = position.Chapters.Find(final => final.customOption != null && final.customOption.CheckpointLevelName == checkpoint);
         } else {
             EnteringPosition = null;
         }
@@ -610,6 +592,7 @@ public class CustomChapterPanel {
             EnteringPosition = EnteringPosition.parent;
         }
         EnteringPosition = null;
+        prevOption = null;
 
         orig(session, fromSaveData);
     }
